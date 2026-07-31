@@ -1,0 +1,518 @@
+# Quick Reference - Critical Information for Instant Recall
+
+ssh_servers:
+  yd16:
+    hostname: 137.131.50.16
+    port: 39022
+    user: ubuntu
+    key: ~/.ssh/id_rsa
+    projects: [Alliance]
+    alias: yd16
+    note: "Oracle 2G/16M alliance host"
+    
+  yd47:
+    hostname: 129.146.0.47
+    port: 39022
+    user: ubuntu
+    key: ~/.ssh/id_rsa
+    projects: [Member, AIT, iHub]
+    alias: yd47
+    note: "Oracle 2G/16M member host"
+    paths:
+      member: /www/wwwroot/win.tg25.win
+      ait: /www/wwwroot/ait.tg25.win
+      ihub: /www/wwwroot/ihub.tg25.win
+    
+  infra:
+    hostname: 141.148.165.50
+    port: 39022
+    user: ubuntu
+    key: ~/.ssh/id_rsa
+    projects: [Infra]
+    alias: infra
+    note: "Infra API server (api.tg25.win, mqtt.tg25.win)"
+    path: /home/ubuntu/tg25-infra
+    nginx_path: /etc/nginx/sites-enabled/
+    
+  yd174:
+    hostname: 129.153.116.174
+    port: 39022
+    user: ubuntu
+    key: ~/.ssh/id_rsa
+    projects: [Owner]
+    alias: yd174
+    note: "Oracle owner host (iot.tg25.win)"
+    path: /www/wwwroot/iot.tg25.win
+
+project_paths:
+  Alliance:
+    local: /Users/ilawusong/Documents/sysWawIot/Alliance
+    remote: /www/wwwroot/ali.tg25.win
+    server: yd16
+    domain: ali.tg25.win
+    agent: Allie
+    framework: Laravel 11
+    language: PHP 8.3
+    database: 
+      type: MySQL
+      name: iotv9
+      host: ali.tg25.win
+    responsibilities:
+      - 供應商管理 (Supplier)
+      - 代理商管理 (Distributor)
+      - 供應鏈關係維護
+      - 分潤結算
+    features:
+      - 供應商註冊與審核
+      - 代理商層級管理
+      - 訂單與庫存追蹤
+    dependencies:
+      - None (獨立系統)
+    
+  Member:
+    local: /Users/ilawusong/Documents/sysWawIot/Member
+    remote: /www/wwwroot/win.tg25.win
+    server: yd47
+    domain: win.tg25.win
+    agent: Mina
+    framework: Laravel 11 + Inertia.js + Vue 3
+    language: PHP 8.3 + JavaScript
+    database:
+      type: MySQL
+      name: waw_member
+      host: win.tg25.win
+    responsibilities:
+      - 玩家前端 (Player Frontend)
+      - LINE SSO 登入
+      - 支付與錢包系統
+      - 兌幣機互動 (Kiosk Exchange)
+      - WebSocket 即時通訊
+    features:
+      - LINE Login 整合
+      - 玩家錢包 (credits)
+      - 兌幣機 QR Code 綁定
+      - 紙鈔兌幣流程 (Phase 1-5)
+      - Reverb WebSocket 推播
+    dependencies:
+      - Infra API (device auth, credit relay)
+      - iHub (QR code generation)
+    
+  Owner:
+    local: /Users/ilawusong/Documents/sysWawIot/wawOwner
+    remote: /www/wwwroot/iot.tg25.win
+    server: yd174
+    domain: iot.tg25.win
+    agent: Sophie
+    framework: Laravel 11
+    language: PHP 8.3
+    database:
+      type: MySQL
+      name: iotv9
+      host: iot.tg25.win
+    responsibilities:
+      - 營運商後台 (Operator Backend)
+      - 場館管理 (Venue)
+      - 遊戲機設備管理 (IOTwawS3)
+      - 營收報表
+    features:
+      - 場館與設備綁定
+      - 遊戲機採集卡管理
+      - 營收統計與報表
+      - 設備狀態監控
+    dependencies:
+      - Infra MQTT (device/{chip_id}/)
+    
+  Infra:
+    local: /Users/ilawusong/Documents/sysWawIot/tg25-infra
+    remote: /home/ubuntu/tg25-infra
+    server: infra
+    domain: api.tg25.win
+    agent: Ina
+    framework: FastAPI + Systemd Services
+    language: Python 3.11
+    database:
+      type: PostgreSQL
+      name: iotv9
+      host: api.tg25.win
+    responsibilities:
+      - 基礎設施 API
+      - MQTT Broker (Mosquitto)
+      - 設備認證 (Device Auth)
+      - 點數中繼 (Credit Relay)
+      - OTA 韌體更新
+    features:
+      - MQTT 訊息路由
+      - 設備 MAC 認證
+      - 點數轉移 API
+      - 韌體版本管理
+      - Kiosk Listener (紙鈔機監聽)
+    services:
+      - credit-relay (systemd)
+      - waw-kiosk-listener (systemd)
+      - waw-ota-listener (systemd)
+    dependencies:
+      - None (底層服務)
+    
+  iHub:
+    local: /Users/ilawusong/Documents/sysWawIot/iHub
+    remote: /www/wwwroot/ihub.tg25.win
+    server: yd47
+    domain: ihub.tg25.win
+    agent: Hubie
+    framework: Node.js + Express
+    language: JavaScript (Node.js 18)
+    database:
+      type: None (stateless)
+    responsibilities:
+      - Android iHub APK 後端
+      - QR Code 生成
+      - 設備認證中繼
+    features:
+      - QR Code 生成 API
+      - 設備綁定驗證
+      - Member API 代理
+    dependencies:
+      - Member API (session, binding)
+      - Infra API (device auth)
+    
+  AIT:
+    local: /Users/ilawusong/Documents/sysWawIot/ait.tg25.win
+    remote: /www/wwwroot/ait.tg25.win
+    server: yd47
+    domain: ait.tg25.win
+    agent: None (工具站)
+    framework: Static HTML + JavaScript
+    language: JavaScript
+    database:
+      type: None
+    responsibilities:
+      - 開發者工具站
+      - API 測試介面
+      - 硬體測試工具
+    features:
+      - API 測試表單
+      - MQTT 訊息監聽
+      - 設備狀態查詢
+    dependencies:
+      - All APIs (測試用)
+      
+  Firmware_Kiosk:
+    local: /Users/ilawusong/Documents/sysWawIot/Firmware/IOTkiosk_v0
+    remote: None (OTA via Infra)
+    server: None
+    agent: Fio
+    framework: ESP-IDF / Arduino
+    language: C/C++
+    platform: ESP32-S3
+    responsibilities:
+      - 紙鈔機收鈔卡韌體
+      - MQTT 通訊 (kiosk/{chip_id}/)
+      - 紙鈔驗鈔與計數
+    features:
+      - 紙鈔驗鈔器控制
+      - MQTT 狀態回報
+      - OTA 韌體更新
+    dependencies:
+      - Infra MQTT
+      
+  Firmware_Game:
+    local: /Users/ilawusong/Documents/sysWawIot/Firmware/IOTwawS3
+    remote: None (OTA via Infra)
+    server: None
+    agent: Coli
+    framework: ESP-IDF / Arduino
+    language: C/C++
+    platform: ESP32-S3
+    responsibilities:
+      - 遊戲機採集卡韌體
+      - MQTT 通訊 (device/{chip_id}/)
+      - 脈衝計數與回報
+    features:
+      - 脈衝計數器
+      - MQTT 狀態回報
+      - OTA 韌體更新
+    dependencies:
+      - Infra MQTT
+
+deployment_commands:
+  member:
+    ssh: "ssh -p 39022 ubuntu@129.146.0.47"
+    deploy: |
+      cd /www/wwwroot/win.tg25.win
+      git pull origin main
+      pnpm install && pnpm build
+      php artisan migrate --force
+      php artisan view:clear
+      php artisan config:cache
+      php artisan cache:clear
+      sudo systemctl restart reverb
+      
+  alliance:
+    ssh: "ssh -p 39022 ubuntu@137.131.50.16"
+    deploy: |
+      cd /www/wwwroot/ali.tg25.win
+      git pull origin main
+      composer install --no-dev
+      php artisan migrate --force
+      php artisan config:cache
+      php artisan cache:clear
+      
+  owner:
+    ssh: "ssh -p 39022 ubuntu@129.153.116.174"
+    deploy: |
+      cd /www/wwwroot/iot.tg25.win
+      git pull origin main
+      composer install --no-dev
+      php artisan migrate --force
+      php artisan config:cache
+      php artisan cache:clear
+      
+  ihub:
+    ssh: "ssh -p 39022 ubuntu@129.146.0.47"
+    deploy: |
+      cd /www/wwwroot/ihub.tg25.win
+      git pull origin main
+      npm run build
+      
+  infra:
+    ssh: "ssh -p 39022 ubuntu@141.148.165.50"
+    note: "Infra uses systemd services, not git deploy"
+    services:
+      - credit-relay
+      - waw-kiosk-listener
+      - waw-ota-listener
+
+api_keys:
+  internal_key: v9-internal-key-2026
+  note: "Used for inter-service authentication (Member ↔ Infra, iHub ↔ Member)"
+  header: X-Internal-Key
+  usage:
+    ihub_to_member: "X-Internal-Key: v9-internal-key-2026"
+    ihub_to_infra: "X-Internal-Key: v9-internal-key-2026"
+    member_to_infra: "X-Internal-Key: v9-internal-key-2026"
+    infra_to_member: "X-Internal-Key: v9-internal-key-2026"
+    developer_to_hware: "X-Internal-Key: v9-internal-key-2026"
+  exception:
+    member_app: "Authorization: Bearer {token}"
+
+identifier_format:
+  rule: all_lowercase
+  examples:
+    node_id: kiosk_001
+    esp32_mac: e072a1f73a78
+    chip_id: e072a1f73a78
+  exception:
+    screen_mac: "STB-T1BQTYBDUEGX (keep original)"
+  enforcement:
+    write: "strtolower($value)"
+    query: "where('field', strtolower($value))"
+
+database_hosts:
+  member: 
+    host: win.tg25.win
+    type: Laravel MySQL
+    database: waw_member
+    connection: mysql
+  owner: 
+    host: iot.tg25.win
+    type: Laravel MySQL
+    database: iotv9
+    connection: mysql
+  alliance: 
+    host: ali.tg25.win
+    type: Laravel MySQL
+    database: iotv9
+    connection: mysql
+  infra: 
+    host: api.tg25.win
+    type: PostgreSQL
+    database: iotv9
+    note: "Access via API only, no direct DB connection from other projects"
+  forbidden:
+    member_to_owner_db: "Member MUST NOT query Owner DB directly (use Infra API)"
+    localhost_mysql: "NEVER use localhost:3306 on Mac"
+  
+ssh_tunnel_for_db:
+  rule: "All DB operations MUST use SSH tunnel"
+  local_port: 3308
+  remote_server: 141.148.165.50
+  remote_port: 3306
+  database: iotv9
+  connection_string: "mysql -h 127.0.0.1 -P 3308 -u root -p iotv9"
+  responsibility:
+    infra: "DDL (schema changes)"
+    others: "DML only (query, insert, update, delete)"
+
+mqtt_broker:
+  host: api.tg25.win
+  port: 1883
+  topics:
+    kiosk: "kiosk/{chip_id}/*"
+    device: "device/{chip_id}/*"
+  rules:
+    - chip_id_must_be_lowercase
+    - cannot_mix_firmware_topics
+    - topic_format_changes_require_hq_approval
+  reference: brains/knowledge/MQTT_TOPIC_STANDARD.md
+
+http_status_codes:
+  200: success
+  401: unauthorized (X-Internal-Key invalid OR Bearer token invalid)
+  404: not_found (Session not exist)
+  409: conflict (Kiosk busy)
+  422: validation_failed (Token expired)
+  500: server_error (Unexpected error)
+  note: "Verified from Member/CallbackController.php:31, KioskController.php:357, Infra/upload.py"
+  
+error_response_format:
+  status: error
+  error: error_code
+  message: human_readable_message
+
+coding_style:
+  php:
+    variables: camelCase
+    classes: PascalCase
+    methods: camelCase
+    db_fields: snake_case
+  javascript:
+    variables: camelCase
+    components: PascalCase
+    methods: camelCase
+  python:
+    variables: snake_case
+    classes: PascalCase
+    functions: snake_case
+
+websocket_channels:
+  naming: lowercase_with_dots
+  example: "kiosk.kiosk_001"
+  event_naming: PascalCase_with_dot_prefix
+  event_example: ".MemberBoundToKiosk"
+
+firmware_types:
+  IOTkiosk_v0:
+    purpose: bill_acceptor
+    mqtt_prefix: "kiosk/{chip_id}/"
+    managed_by: [Member, Infra]
+    
+  IOTwawS3:
+    purpose: game_collector
+    mqtt_prefix: "device/{chip_id}/"
+    managed_by: Owner
+
+common_issues:
+  member_git_permission:
+    problem: ".git/FETCH_HEAD becomes root:root"
+    fix: |
+      sudo chown -R ubuntu:ubuntu .git
+      git pull
+      sudo chown -R www:www .
+      
+  laravel_cache:
+    problem: "Config or view changes not taking effect"
+    fix: |
+      php artisan optimize:clear
+      php artisan config:cache
+      php artisan view:clear
+      
+  reverb_not_working:
+    problem: "WebSocket not connecting"
+    fix: |
+      sudo systemctl restart reverb
+      sudo systemctl status reverb
+
+agent_contacts:
+  format: "./scripts/hq_task_flow.sh <type> <agent> <id> '<description>'"
+  types: [task, consult, review, supplement, redo, approve]
+  agents: [allie, mina, sophie, ina, hubie, fio, coli]
+  note: "廢棄 mcp_ai_chat_bridge（2026-06-06），詳見 brains/knowledge/01_agent_governance/MESSAGE_HUB_PROTOCOL.md"
+
+lessons_learned_20260508:
+  sim_bill_heartbeat:
+    incident: "Hubie 在 sim-bill 加了 heartbeat 功能，但只加了一半（漏了 nginx proxy），造成 405 錯誤"
+    rule: "sim-bill 是紙鈔機模擬器，不是平板。平板心跳由 iHub 主頁面處理，sim-bill 只模擬投幣行為"
+    lesson: "新增功能前必須確認職責範圍，不可隨意在模擬器加不相關的功能"
+
+  hardware_status_chain:
+    incident: "Hardware SP32 顯示『未知狀態』，因為 Infra Listener 只訂閱 kiosk/+/event，沒有訂閱 kiosk/+/status"
+    correct_chain: "韌體 MQTT kiosk/{chip_id}/status → Infra Listener → Member webhook POST /internal/kiosk/status → WebSocket broadcast → 工程頁面"
+    sim_chain: "sim-bill → POST /api/simulator/status → server/index.js proxy → POST api.tg25.win/api/kiosk/hardware-status → MQTT → 同上"
+    lesson: "模擬器必須走跟真實韌體完全相同的鏈路，不可繞過任何一層"
+
+  agent_deploy_verification:
+    incident: "Ina 說完成但代碼只在本地沒有部署，HQ curl 測試 404 才發現"
+    rule: "Agent 回報完成必須附上實際驗證結果（curl 回傳、log 截圖），HQ 必須親自驗證才算通過"
+    lesson: "不接受口頭回報，HQ 驗證通過才通知 Boss 測試"
+
+  infra_listener_path:
+    note: "生產環境運行的是 /home/ubuntu/kiosk_event_listener.py，不是專案目錄內的版本"
+    rule: "Ina 部署 Listener 修改時，必須同步 /home/ubuntu/kiosk_event_listener.py，不只是 git push"
+
+  new_feature_half_done:
+    incident: "Hubie 多次加了一半的功能（heartbeat 加前端沒加 nginx、改 Echo.join() 沒考慮 auth）"
+    rule: "新增功能必須完整：前端 + 後端 + nginx（如需要）+ 驗證，缺一不可"
+    lesson: "加功能前先列出所有需要改的地方，HQ 審核後才動手"
+
+lessons_learned_20260510:
+  sim_bill_event_overriding:
+    incident: "iHub 按確認入帳後 sim-bill 沒反應，最終超時失敗。Hubie 發現後端 /api/simulator/bill 用 if(amount) 判斷事件類型，導致 ba_state:STACKED 被錯誤改成 event:escrow"
+    root_cause: "後端 proxy 粗暴地用 amount 欄位推測事件類型，而非嚴格依賴 ba_state"
+    correct_logic: "事件映射必須嚴格依賴 ba_state，不可用其他欄位推測"
+    lesson: "模擬器必須與真實韌體走完全相同的鏈路，後端 proxy 不應該「聰明」地修改前端發送的資料"
+
+  sim_bill_race_condition:
+    incident: "Console 出現 Invalid: STACKED -> STACKED 錯誤，狀態機拒絕轉換"
+    root_cause: "StateMachine 有 setTimeout 自動推進，SSE 監聽器又手動 transition()，雙重觸發"
+    correct_logic: "單一狀態控制權原則：狀態轉換只能由一個地方控制"
+    lesson: "事件監聽器只負責觸發初始狀態，後續交給 StateMachine 自動推進"
+
+  sim_bill_config_pollution:
+    incident: "測試時 sim-bill 的 chip_id 和 node_id 與資料庫不一致，導致 MQTT 訂閱錯誤的主題"
+    root_cause: "sim-bill 有動態配置面板，用戶隨意修改導致身分與資料庫脫節"
+    correct_logic: "模擬器身分必須寫死對齊資料庫，不可讓用戶修改"
+    lesson: "測試環境的配置必須與生產環境一致，localStorage 不應該保存會影響系統行為的關鍵配置"
+
+  hq_diagnostic_failure:
+    incident: "HQ 只檢查檔案、git commit、nginx，沒有追查執行流程和邏輯錯誤，浪費大量時間"
+    root_cause: "違反 coding-guidelines.md 原則：只檢查表面，沒有 Investigate Before Answering"
+    correct_approach: "看 log 確認每個步驟是否執行 → 追查為什麼沒有執行 → 找到根本原因 → 修復 → 再測試"
+    lesson: "診斷問題要追查執行流程，不是檢查檔案。「代碼已部署」不等於「功能正常」。成功標準是「Boss 看到預期結果」"
+
+  sse_keep_alive:
+    technical_note: "Cloudflare 對長連線有超時（通常 100 秒），SSE 沒有 keep-alive 就會被切斷"
+    solution: "每 25 秒送 keep-alive ping，nginx 加 proxy_buffering off"
+    reference: "brains/history/LESSON_20260510_SIM_BILL_DEBUGGING.md"
+
+  ui_task_screenshot_mandatory:
+    rule: "UI 任務完成必須附上橫屏 + 直屏截圖，無截圖 = 未完成任務"
+    reason: "避免 HQ 必須親自打開測試網址驗證"
+    source: "Hubie AI_CONTEXT.md 坑 #1"
+
+  optimistic_ui_principle:
+    rule: "點擊立刻跳轉 Stage，先顯示 Loading，API 請求在背景執行"
+    anti_pattern: "點擊後等 API 回來才切畫面，網路慢時使用者以為當機"
+    source: "Hubie AI_CONTEXT.md 坑 #6"
+
+  init_race_condition:
+    problem: "init() 覆寫了使用者的主動點擊，把使用者踢回首頁"
+    solution: "init() 中的狀態設定必須有保護條件：if (state === 'idle') setState('idle')"
+    rule: "絕對不能無條件覆寫目前狀態，避免產生 Race Condition"
+    source: "Hubie AI_CONTEXT.md 坑 #7"
+
+hq_operational_rules:
+  read_files:
+    same_workspace: "use read_file tool (path under /Users/ilawusong/Documents/sysWawIot/HQ)"
+    cross_workspace: "use execute_bash + cat (NEVER use read_file for paths outside HQ workspace)"
+    examples:
+      correct: "cat /Users/ilawusong/Documents/sysWawIot/IOTkiosk_v0/docs/IHUB_INTEGRATION.md"
+      wrong: "read_file /Users/ilawusong/Documents/sysWawIot/IOTkiosk_v0/docs/IHUB_INTEGRATION.md"
+  
+  timezone:
+    default: "UTC+8 (台北時間)"
+    format: "YYYY-MM-DD HH:MM:SS (UTC+8)"
+    rule: "所有時間記錄必須標註時區，不可只寫時間"
+
+  hq_boundaries:
+    can_do: ["read any workspace files via cat", "diagnose root cause", "dispatch tasks via Chat Bridge", "write brains/knowledge/"]
+    cannot_do: ["modify code in other workspaces", "deploy directly", "write to other workspace files"]

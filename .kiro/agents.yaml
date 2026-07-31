@@ -1,0 +1,195 @@
+# AI Agent Registry (Optimized for AI parsing)
+
+subagents:
+  alliance-dev:
+    type: sub_agent
+    project: Alliance
+    workspace: /Users/ilawusong/Documents/sysWawIot/Alliance
+    domain: ali.tg25.win
+    tools: [read, write, shell]
+    responsibilities:
+      - code_modification
+      - feature_development
+      - bug_fixing
+      - local_testing
+    workflow:
+      - locate_files
+      - execute_modification
+      - record_to_alliance_journal: Alliance/agents/journals/dev_distillation.md
+      - report_results
+    forbidden:
+      - modify_production_directly
+      - execute_migrations
+      - delete_important_files
+      - cross_project_pollution
+    
+  alliance-cleaner:
+    type: sub_agent
+    project: Alliance
+    workspace: /Users/ilawusong/Documents/sysWawIot/Alliance
+    responsibilities:
+      - document_quality_check
+      - identify_contradictions
+      - identify_redundancy
+      - identify_outdated_content
+      - identify_militarized_language
+      - unify_document_style
+      - simplify_architecture_concepts
+      - clarify_role_positioning
+    usage: "@alliance-cleaner analyze <file/directory>" or "@alliance-cleaner clean <file>"
+    
+  hq-coordinator:
+    type: sub_agent
+    project: HQ
+    responsibilities:
+      - task_dispatch_to_other_agents
+      - track_execution_status
+      - coordinate_cross_project_work
+    usage: "叫 XXX 做 YYY"
+    workflow:
+      - parse_user_command
+      - identify_target_agent
+      - dispatch_task_via_hq_task_flow_sh
+      - track_and_report_status
+
+partners:
+  Allie:
+    project: Alliance
+    workspace: /Users/ilawusong/Documents/sysWawIot/Alliance
+    domain: ali.tg25.win
+    role: alliance_development
+    responsibilities:
+      - supplier_distributor_management
+      - device_authentication_binding
+      - profit_sharing_calculation
+      - settlement_system
+    tech_stack: Laravel
+    journal: agents/journals/allie.md
+    forbidden:
+      - impersonate_other_agents
+      - report_on_behalf_of_others
+      - make_decisions_for_others
+    
+  Ina:
+    project: Infra
+    workspace: /Users/ilawusong/Documents/sysWawIot/tg25-infra
+    domain: api.tg25.win
+    role: infrastructure_support
+    responsibilities:
+      - database_management
+      - mqtt_broker
+      - api_gateway
+      - server_maintenance
+    services:
+      - credit-relay
+      - waw-kiosk-listener
+      - waw-ota-listener
+    
+  Mina:
+    project: Member
+    workspace: /Users/ilawusong/Documents/sysWawIot/Member
+    domain: win.tg25.win
+    role: player_frontend
+    responsibilities:
+      - line_sso_integration
+      - payment_system
+      - wallet_management
+      - kiosk_session_management
+    tech_stack: Laravel
+    
+  Sophie:
+    project: Owner
+    workspace: /Users/ilawusong/Documents/sysWawIot/wawOwner
+    domain: iot.tg25.win
+    role: operator_backend
+    responsibilities:
+      - device_management
+      - venue_management
+      - reports_dashboard
+      - operator_portal
+    tech_stack: Laravel
+    
+  Hubie:
+    project: iHub
+    workspace: /Users/ilawusong/Documents/sysWawIot/iHub
+    domain: ihub.tg25.win
+    role: virtual_hub_integration
+    responsibilities:
+      - android_ihub_app
+      - device_authentication
+      - qr_code_generation
+      - kiosk_heartbeat
+    tech_stack: Vue.js
+    
+  Fio:
+    project: Firmware
+    firmware: IOTkiosk_v0
+    role: bill_acceptor_firmware
+    responsibilities:
+      - esp32_kiosk_v0
+      - rs232_bill_acceptor
+      - ba_state_management
+    mqtt_topics: "kiosk/{chip_id}/*"
+    
+  Coli:
+    project: Firmware
+    firmware: IOTwawS3
+    role: game_collector_firmware
+    responsibilities:
+      - esp32_game_v0
+      - game_machine_collection
+      - pulse_credit_in
+    mqtt_topics: "device/{chip_id}/*"
+    
+  AIT:
+    project: Testing
+    workspace: /Users/ilawusong/Documents/sysWawIot/ait.tg25.win
+    domain: ait.tg25.win
+    role: ai_testing
+    responsibilities:
+      - test_site_development
+      - experimental_features
+      - validation
+    listener: ait_listener.py
+    service: waw-ait.service
+
+communication:
+  primary: hq_message_hub_redis
+  tools:
+    - hq_task_flow_sh
+  format: "./scripts/hq_task_flow.sh <type> <agent> <id> '<description>'"
+  note: "廢棄 chat_bridge_mcp（2026-06-06），現行為 Redis Pub/Sub，詳見 brains/knowledge/01_agent_governance/MESSAGE_HUB_PROTOCOL.md"
+  
+deployment:
+  servers:
+    yd16:
+      ip: 137.131.50.16
+      projects: [Alliance]
+      path: /www/wwwroot/ali.tg25.win
+    yd47:
+      ip: 129.146.0.47
+      port: 39022
+      projects: [Member, AIT, iHub]
+      paths:
+        member: /www/wwwroot/win.tg25.win
+        ait: /www/wwwroot/ait.tg25.win
+        ihub: /www/wwwroot/ihub.tg25.win
+    infra:
+      projects: [Infra]
+      path: /home/ubuntu/tg25-infra
+
+firmware_distinction:
+  IOTwawS3:
+    purpose: game_machine_collector
+    mqtt_prefix: "device/{chip_id}/"
+    managed_by: Owner
+  IOTkiosk_v0:
+    purpose: bill_acceptor
+    mqtt_prefix: "kiosk/{chip_id}/"
+    managed_by: [Member, Infra]
+
+critical_rules:
+  - NO_TRIAL_AND_ERROR: brains/knowledge/CRITICAL_NO_TRIAL_AND_ERROR.md
+  - HQ_OPERATIONAL_RULES: brains/knowledge/hq_operational_rules.md
+  - MQTT_TOPIC_STANDARD: brains/knowledge/MQTT_TOPIC_STANDARD.md
+  - INTERACTION_PROTOCOL: brains/knowledge/interaction_protocol_common_sense.md

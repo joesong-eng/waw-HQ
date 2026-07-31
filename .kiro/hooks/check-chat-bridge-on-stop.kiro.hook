@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "name": "Check Chat Bridge on Stop",
+  "description": "每次 Kiro 執行結束時：1) 檢查 messages.json 大小，超過 500KB 時保留最近 50 條；2) 讀取 Chat Bridge 中提及 HQ 的最新訊息",
+  "version": "2",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "請依序執行以下兩件事：\n\n1. 執行這個 bash 指令檢查並清理 messages.json（超過 500KB 時保留最近 50 條）：\n```\npython3 -c \"\nimport json, os\nf = os.path.expanduser('~/.kiro/mcp-chat/messages.json')\nif os.path.exists(f):\n    size = os.path.getsize(f)\n    if size > 512000:\n        msgs = json.load(open(f, encoding='utf-8'))\n        kept = msgs[-50:]\n        json.dump(kept, open(f,'w', encoding='utf-8'), ensure_ascii=False, indent=2)\n        print(f'已清理：{size//1024}KB，保留最近 {len(kept)} 條')\n    else:\n        print(f'大小正常：{size//1024}KB，無需清理')\n\"\n```\n\n2. 使用 mcp_ai_chat_bridge_read_mentions 工具讀取 Chat Bridge 中提及 HQ 的最新最後訊息（agent_name=HQ, since_id=0）。如果有訊息，簡短列出是誰說了什麼。如果沒有訊息，不要輸出任何文字，直接結束。"
+  },
+  "workspaceFolderName": "HQ",
+  "shortName": "check-chat-bridge-on-stop"
+}

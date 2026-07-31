@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "檢查 Markdown 文件註冊",
+  "description": "當在 brains/knowledge/ 下創建 .md 文件時，自動檢查該文件是否已在 DOCUMENT_INDEX.md 中註冊。如果未註冊，提醒這是流浪文件，需要先在索引中註冊。",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "brains/knowledge/**/*.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "檢查剛創建的文件是否已在 brains/knowledge/DOCUMENT_INDEX.md 中註冊：\n\n1. 讀取 DOCUMENT_INDEX.md 的完整內容\n2. 檢查新文件的路徑（相對於 brains/knowledge/）是否出現在索引中\n3. 如果未註冊：\n   - 標記為「流浪文件」\n   - 提醒用戶：「⚠️ 流浪文件警告：此文件未在 DOCUMENT_INDEX.md 中註冊。請先在索引中註冊此文件，說明其用途和所屬分類，否則此文件將被視為無效文件。」\n   - 建議應該註冊在哪個章節（根據文件路徑判斷）\n4. 如果已註冊：\n   - 確認註冊正確\n   - 提醒用戶記得為此文件添加「🔗 文件神經連結」區塊\n\n注意：\n- DOCUMENT_INDEX.md 本身、README.md、NEURAL_LINKS_PROGRESS.md 等元文件不需要註冊\n- Temps/ 目錄下的臨時文件不需要註冊\n- 檢查時使用相對路徑，例如 \"01_agent_governance/AGENT_EXECUTION_PROTOCOL.md\""
+  }
+}
