@@ -1,0 +1,16 @@
+[Unit]
+Description=AIT Agent Listener (ait.tg25.win)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/www/wwwroot/HQ
+ExecStart=/usr/bin/python3 /www/wwwroot/HQ/ait_listener.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

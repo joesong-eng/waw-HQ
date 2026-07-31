@@ -1,0 +1,16 @@
+[Unit]
+Description=Telegram Bridge for AI Chat
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/www/wwwroot/HQ
+ExecStart=/usr/bin/python3 /www/wwwroot/HQ/docs/tg-bridge.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

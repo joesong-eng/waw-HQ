@@ -1,0 +1,82 @@
+# 全系統名稱權威手冊 (Universal Naming Authority & Lexicon)
+
+> **版本**: 3.0.0 (2026-06-17)
+> **狀態**: 🔴 **最高法典** - 全系統（AI 與 真人）唯一真理來源。
+> **原則**: 拒絕猜測、拒絕別名、拒絕混用 snake_case 與 camelCase。
+
+---
+
+## 一、 核心識別碼 (Identity Lexicon)
+
+| 變數名稱 | 適用範圍 | 定義 / 格式 | 範例 | ❌ 禁用名稱 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`chip_id`** | 全系統 | 物理硬體 ID (12位小寫 hex，無冒號) | `e072a1f73a78` | chipId, mac, esp32_mac |
+| **`node_id`** | 對外/API | 邏輯產品 ID (機台編號) | `device_001`, `kiosk_000` | deviceId, nodeId, kiosk_id |
+| **`owner_id`** | DB / API | 營運商/業主 ID (users.id) | `2` | ownerId, user_id |
+| **`transaction_id`** | 全系統 | 交易唯一識別碼 (UUIDv4 或 系統序號) | `req_20260617_abc` | trans_id, order_no |
+
+---
+
+## 二、 MQTT 通訊規範 (MQTT Naming & Payload)
+
+### 2.1 主題格式 (Topic Patterns)
+- **上行數據**: `device/{chip_id}/data/{type}` (例如: `device/iot002/data/credit_in`)
+- **上行心跳**: `device/{chip_id}/status`
+- **下行指令**: `device/{chip_id}/command`
+
+### 2.2 核心 Payload 欄位
+| 欄位名 | 類型 | 說明 | ❌ 禁用名稱 |
+| :--- | :--- | :--- | :--- |
+| **`type`** | String | 脈衝類型：`credit_in` (入金) / `credit_out` (出金) | pulse_type, action |
+| **`count`** | Integer | 累積值或增量次數 (脈衝數) | pulse, value, pulses |
+| **`amount`** | Integer | **台幣整數元** (例如 100 代表 100 元) | money, price, balance |
+| **`lifetime`** | Integer | 總生命週期累積值 | total_count |
+
+---
+
+## 三、 資料庫核心架構 (WAW 2.0 Database Schema)
+
+### 3.1 核心資料表
+- **`machines`**: 營運機台主表 (取代舊版 `devices`)。
+- **`revenue_facts`**: 營收原始流水表 (單筆增量紀錄)。
+- **`venues`**: 場地/店面表。
+- **`machine_deployments`**: 機台與場地的動態部署關係表。
+
+### 3.2 營收稽核關鍵欄位 (revenue_facts)
+| 欄位名 | 類型 | 說明 | 邏輯規範 |
+| :--- | :--- | :--- | :--- |
+| **`transaction_type`** | Enum | `credit_in` / `credit_out` | **入出金唯一區分標籤** |
+| **`delta_value`** | Integer | 脈衝增量 | **永遠為正數**，不准用正負號區分入出金 |
+| **`amount`** | Decimal | 換算後的台幣金額 | `delta_value * pulse_ratio` |
+| **`is_valid`** | Boolean | 有效性標記 | 1=正常, 0=誤投/測試數據 |
+| **`event_ts`** | DateTime | 事件發生時間 | 使用 UTC 時間 |
+
+---
+
+## 四、 WebSocket 頻道與事件 (WebSocket Standard)
+
+| 頻道格式 | 說明 | 事件名稱 (`broadcastAs`) |
+| :--- | :--- | :--- |
+| **`realtime`** | 全域監控 | `.device.updated` |
+| **`engineering.{node_id}`** | 單機工程頻道 | `signal` |
+| **`venue.{venue_id}`** | 場地即時監控 | `.venue.updated` |
+
+---
+
+## 五、 業務邏輯金律 (Business Logic Rules)
+
+1. **Delta 計算原則**：Delta = `當前累積值` - `上次存儲值`。若上次值不存在，則僅建立基準線，不產生交易紀錄。
+2. **入出金判斷原則**：一律查 `transaction_type`，禁止檢查 `delta_value < 0`。
+3. **解耦原則**：`devices` (硬體) ↔ `machines` (營運) ↔ `venues` (場地)。三者透過部署表連結。
+
+---
+
+## 六、 快速查閱索引 (Folder Index)
+
+- 詳細協議細節 → `02_protocols_and_standards/`
+- 業務流程圖解 → `05_product_and_business_flows/`
+- 部署操作 SOP → `04_ops_and_deployments/`
+
+---
+
+*最後修訂：HQ (Hera) | 2026-06-17*

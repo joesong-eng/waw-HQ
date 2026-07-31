@@ -1,0 +1,15 @@
+[Unit]
+Description=WAW Cluster SSH Tunnel for YD174 (Owner)
+After=network.target
+
+[Service]
+# 此服務跑在 YD174 (iot.tg25.win)，讓本地 Laravel 能連到 YD141 的資料庫
+# 轉發路徑: YD174:3308 -> YD141:3306 (MySQL)
+# 轉發路徑: YD174:6380 -> YD141:6379 (Redis)
+User=ubuntu
+ExecStart=/usr/bin/ssh -N -L 3308:localhost:3306 -L 6380:localhost:6379 -p 39022 ubuntu@141.148.165.50 -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes -o ServerAliveInterval=60
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

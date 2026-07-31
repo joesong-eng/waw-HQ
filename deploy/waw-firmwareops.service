@@ -1,0 +1,15 @@
+[Unit]
+Description=WAW V9 Firmware Operations (AI FirmwareOps)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/www/wwwroot/HQ
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /www/wwwroot/HQ/agents/firmware_ops_worker.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

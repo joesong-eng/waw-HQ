@@ -1,0 +1,11 @@
+server {
+    listen 127.0.0.1:8088;
+    server_name localhost;
+
+    root /www/wwwroot/HQ/site;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

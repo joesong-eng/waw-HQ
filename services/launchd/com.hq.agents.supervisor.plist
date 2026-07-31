@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>AGENT_EXEC_TIMEOUT</key>
+		<string>900</string>
+		<key>CODEX_BIN</key>
+		<string>/Users/ilawusong/.local/bin/codex</string>
+		<key>HQ_PATH</key>
+		<string>/Users/ilawusong/Documents/WaW/WHQ</string>
+		<key>PATH</key>
+		<string>/Users/ilawusong/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>KeepAlive</key>
+	<true/>
+	<key>Label</key>
+	<string>com.hq.agents.supervisor</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/ilawusong/Documents/WaW/WHQ/.venv/bin/python3</string>
+		<string>-u</string>
+		<string>/Users/ilawusong/Documents/WaW/WHQ/core/hq_gateway.py</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>/Users/ilawusong/Documents/WaW/WHQ/logs/hq_gateway.err.log</string>
+	<key>StandardOutPath</key>
+	<string>/Users/ilawusong/Documents/WaW/WHQ/logs/hq_gateway.out.log</string>
+	<key>WorkingDirectory</key>
+	<string>/Users/ilawusong/Documents/WaW/WHQ</string>
+</dict>
+</plist>

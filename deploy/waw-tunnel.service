@@ -1,0 +1,25 @@
+[Unit]
+Description=WAW V9 Strategic Infrastructure Tunnel
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/www/wwwroot/HQ
+# -N: No remote command execution
+# -L: Local port forwarding
+# -o ServerAlive*: Keep-alive every 30 seconds
+# 💡 若 VPS 上的默認密鑰非 id_rsa，請在此處增加 -i /路徑/到/金鑰
+ExecStart=/usr/bin/ssh -p 39022 -N \
+    -L 3308:localhost:3306 \
+    -L 6380:localhost:6379 \
+    -o ServerAliveInterval=30 \
+    -o ServerAliveCountMax=3 \
+    -o ExitOnForwardFailure=yes \
+    -o StrictHostKeyChecking=accept-new \
+    ubuntu@141.148.165.50
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

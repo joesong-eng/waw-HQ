@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.hq.messagehub.v2</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/ilawusong/Documents/WaW/WHQ/.venv/bin/python3</string>
+        <string>-u</string>
+        <string>/Users/ilawusong/Documents/WaW/WHQ/core/message_hub_v2/__main__.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/ilawusong/Documents/WaW/WHQ</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/ilawusong/Documents/WaW/WHQ/logs/message_hub_v2_launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/ilawusong/Documents/WaW/WHQ/logs/message_hub_v2_launchd.err.log</string>
+</dict>
+</plist>

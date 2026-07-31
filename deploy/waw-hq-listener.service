@@ -1,0 +1,17 @@
+[Unit]
+Description=HQ Listener - 總部 Chat Bridge 監控程序
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/www/wwwroot/HQ
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /www/wwwroot/HQ/hq_listener.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
