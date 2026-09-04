@@ -16,7 +16,7 @@ agent_to_module() {
         hubie|ihub) echo "ihub";;
         fio|kiosk|iotkiosk_v0) echo "fio";;
         coli|waws3|iotwaws3) echo "coli";;
-         signalhub|signalhub|signal) echo "signalhub";;
+         sidney|signalhub|signal) echo "signalhub";;
         *) echo "${name}";;
     esac
 }
@@ -188,3 +188,4 @@ case "$1" in
     log) tail -n 30 "${LOG_FILE}" ;;
     *) print_help ;;
 esac
+
