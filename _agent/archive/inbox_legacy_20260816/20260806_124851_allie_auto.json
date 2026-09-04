@@ -1,0 +1,8 @@
+{
+  "from_agent": "allie",
+  "task_id": "TEST_KNOWLEDGE_001",
+  "consult_id": null,
+  "timestamp": "2026-08-06T04:48:51Z",
+  "report_file": "_agent/REPORT_20260806_124500_TEST_KNOWLEDGE_001.md",
+  "report": "# 任務報告：TEST_KNOWLEDGE_001\n- 執行狀態：成功\n- 知識庫摘要：\n  - MQTT Topic 結構：waw/v1/{site_id}/{device_type}/{device_id}/{action}\n  - QoS 設定：包含 0, 1, 2 等級，指令預設為 QoS 1\n"
+}

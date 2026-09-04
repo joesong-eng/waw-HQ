@@ -19,7 +19,7 @@
 ## 伺服器資訊
 
 ### Member VPS (win.tg25.win)
-- **HostName**: `129.146.0.47`
+- **HostName**: `129.146.103.177`
 - **Port**: `39022`
 - **User**: `ubuntu`
 - **別名**: `yd47` (Oracle 2G/16M)
@@ -84,7 +84,7 @@ ssh yd16
 ---
 
 ### iHub VPS (ihub.tg25.win)
-- **HostName**: `129.146.0.47` (與 Member 同機)
+- **HostName**: `129.146.103.177` (與 Member 同機)
 - **Port**: `39022`
 - **User**: `ubuntu`
 - **別名**: `ihub`
@@ -106,7 +106,7 @@ ssh ihub
 
 ```
 Host yd47
-    HostName 129.146.0.47
+    HostName 129.146.103.177
     Port 39022
     User ubuntu
     IdentityFile ~/.ssh/id_rsa

@@ -1,3 +1,57 @@
+# ~~HQ Message Hub 通訊協定~~ (已廢棄)
+
+> ⛔ **廢棄聲明**：本文件描述 v1.0-v3.0 時期的 Redis Pub/Sub 架構。  
+> 自 2026-08 起，派工系統已簡化為**純檔案系統模式**。  
+> **當前版本請參閱**：`SIMPLE_FILE_DISPATCH_PROTOCOL.md`
+
+---
+
+## 為什麼廢棄？
+
+**目錄結構變更**：所有專案已整合到統一目錄 `PROJECT/` 下
+
+```
+舊架構（分散式）          新架構（統一目錄）
+~/wawOwner/          →   ~/Documents/WaW/PROJECT/Owner/
+~/tg25-infra/        →   ~/Documents/WaW/PROJECT/Infra/
+~/Member/            →   ~/Documents/WaW/PROJECT/Member/
+```
+
+由於所有專案在同一父目錄下，不再需要：
+- ❌ Redis Pub/Sub 跨進程通訊
+- ❌ HTTP API Message Hub
+- ❌ agents_supervisor 自動觸發
+- ❌ launchd 自動監聽
+
+**檔案系統已足夠快速可靠**。
+
+---
+
+## 當前派工方式
+
+**HQ 派發任務**：
+```bash
+./scripts/hq_task_flow.sh task <agent> <task_id> "<描述>" [priority]
+```
+
+**Agent 回報**：
+```bash
+bash ../../scripts/agent_report_to_hq_v2.sh <agent_name> <report_file.md>
+```
+
+**詳細說明**：請參閱 `SIMPLE_FILE_DISPATCH_PROTOCOL.md`
+
+---
+
+## 歷史參考（v3.0 Redis Pub/Sub 架構）
+
+以下內容僅供歷史參考，已不再使用。
+
+
+
+---
+---
+
 # HQ Message Hub 通訊協定
 
 > **文件類型**：Agent 協作協議（權威版本）
@@ -39,7 +93,7 @@ Joe
  │ ./scripts/hq_task_flow.sh task <agent> <task_id> "<描述>" [priority]
  ▼
 hq_task_flow.sh
- ├─→ 寫入 _agent/outbox/to_<Agent>.json（備份存檔）
+ ├─→ 寫入 .taskbox/outbox/to_<Agent>.json（備份存檔）
  └─→ redis-cli PUBLISH agent/<agent>/task <payload>
            │
            ▼
@@ -50,7 +104,7 @@ hq_task_flow.sh
            │
            ▼
    Agent 執行完成
-   └─→ agent_report_to_hq_v2.sh → HQ/_agent/inbox/<timestamp>_<agent>.json
+   └─→ agent_report_to_hq_v2.sh → HQ/.taskbox/inbox/<timestamp>_<agent>.json
 ```
 
 ---
@@ -155,7 +209,7 @@ cd /Users/ilawusong/Documents/sysWawIot/HQ
 ```
 
 **發生的事**：
-- `_agent/outbox/to_Sophie.json` 被寫入（備份）
+- `.taskbox/outbox/to_Sophie.json` 被寫入（備份）
 - `redis-cli PUBLISH agent/sophie/task <payload>` 推送
 
 ### Step 2：agents_supervisor 接收
@@ -173,13 +227,13 @@ bash ../HQ/scripts/agent_report_to_hq_v2.sh sophie _agent/LATEST_REPORT.md ../HQ
 
 **回報方式**：
 1. `redis-cli PUBLISH agent/<agent>/report <payload>`
-2. `hq_gateway.py` 收到後存入 `HQ/_agent/inbox/` 並由 `DecisionEngine` 自動決策
+2. `hq_gateway.py` 收到後存入 `HQ/.taskbox/inbox/` 並由 `DecisionEngine` 自動決策
 
 ### Step 4：HQ 查看回報
 
 ```bash
-ls -lht _agent/inbox/ | head -10
-cat _agent/inbox/<最新檔案>.json
+ls -lht .taskbox/inbox/ | head -10
+cat .taskbox/inbox/<最新檔案>.json
 ```
 
 ---
@@ -247,3 +301,4 @@ redis-cli info server   # 確認版本與狀態
 ---
 
 *制定者：HQ | 版本：3.0 | 最後更新：2026-06-09*
+

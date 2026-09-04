@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Models;
+
+use Carbon\Carbon;
+use App\Models\RevenueFact;
+
+trait MachineExtensions
+{
+    /**
+     * 取得機台即時狀態資訊（修復版本 - 保持原方法簽名）
+     * @param Carbon $periodStart
+     * @param string|null $venueName
+     * @param bool $isOnline
+     * @return array
+     */
+    public function getRealtimeStatus(Carbon $periodStart, ?string $venueName = null, bool $isOnline = false): array
+    {
+        $periodStats = $this->getPeriodStatistics($periodStart);
+
+        return [
+            'chip_id' => $this->chip_id,
+            'name' => $this->name,
+            'venue_name' => $venueName ?? '未分配',
+            'status' => $isOnline ? 'online' : 'offline',
+            'last_seen_at' => $this->last_seen_at?->toIso8601String(),
+            'period_credit_in' => $periodStats['period_credit_in'],
+            'period_credit_out' => $periodStats['period_credit_out'],
+            'period_net' => $periodStats['period_net'],
+            'lifetime_credit_in' => (int) $this->lifetime_credit_in,
+            'lifetime_credit_out' => (int) $this->lifetime_credit_out,
+            'pulse_to_display' => $this->pulse_to_display ?? 1,
+        ];
+    }
+
+    /**
+     * 取得期間統計（臨時修復版本）
+     * @param Carbon $periodStart
+     * @return array
+     */
+    public function getPeriodStatistics(Carbon $periodStart): array
+    {
+        // 🚨 臨時修復：屏蔽 transaction_type 查詢避免 500 錯誤
+        // TODO: 等待 Ina 確認 revenue_facts 表正確欄位名後恢復完整功能
+        try {
+            $totalRevenue = RevenueFact::where('chip_id', strtolower($this->chip_id))
+                ->where('event_ts', '>=', $periodStart)
+                ->where('is_valid', true)
+                ->sum('amount');
+            
+            $periodCreditIn = $totalRevenue ?? 0;
+            $periodCreditOut = 0; // 暫時設為 0，待欄位名確認後修復
+            
+        } catch (\Exception $e) {
+            // 如果還有其他 DB 問題，回傳安全預設值
+            $periodCreditIn = 0;
+            $periodCreditOut = 0;
+        }
+
+        return [
+            'period_credit_in' => (int) $periodCreditIn,
+            'period_credit_out' => (int) $periodCreditOut,
+            'period_net' => (int) ($periodCreditIn - $periodCreditOut),
+        ];
+    }
+}

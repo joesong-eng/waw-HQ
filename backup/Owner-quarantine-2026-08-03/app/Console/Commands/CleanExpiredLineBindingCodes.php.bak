@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\User;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
+
+class CleanExpiredLineBindingCodes extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'line:clean-expired-codes';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Clean expired LINE binding codes from users table';
+
+    /**
+     * Execute the console command.
+     */
+    public function handle()
+    {
+        $this->info('Starting to clean expired LINE binding codes...');
+        
+        // 清理過期的綁定碼
+        $count = User::whereNotNull('line_binding_code')
+            ->where('line_binding_expires_at', '<', now())
+            ->update([
+                'line_binding_code' => null,
+                'line_binding_expires_at' => null
+            ]);
+        
+        if ($count > 0) {
+            $this->info("✅ Cleaned {$count} expired binding code(s)");
+            
+            Log::info('Cleaned expired LINE binding codes', [
+                'count' => $count
+            ]);
+        } else {
+            $this->info('ℹ️  No expired binding codes found');
+        }
+        
+        return 0;
+    }
+}

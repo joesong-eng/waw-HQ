@@ -1,0 +1,7 @@
+{
+  "type": "task",
+  "task_id": "TASK_20260805_INFRA_REVERB_SERVICE",
+  "to_agent": "Ina",
+  "priority": "1",
+  "description": "在 VPS 啟動 Laravel Reverb 服務 (Port 6009) 並設定 Nginx WebSocket 反向代理"
+}

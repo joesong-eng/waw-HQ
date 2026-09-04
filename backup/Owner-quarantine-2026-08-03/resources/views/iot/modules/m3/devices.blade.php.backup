@@ -1,0 +1,2036 @@
+@extends('layouts.app')
+
+@section('title', '設備管理')
+
+@push('scripts')
+    <!-- jsQR Library for QR code scanning -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- QRCode.js for local QR code generation -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+    <script>
+        window.deviceManagement = function () {
+            return {
+                // State
+                pendingDevices: [],
+                activeDevices: [],
+                venues: [],
+                parameterTemplates: [], // 參數模板列表
+                pendingProposalsByDevice: {}, // Map of device_id -> proposal
+                userRole: '', // Store user role
+                currentUserId: {{ auth()->user()->id }}, // Current user ID
+                filters: {
+                    venue_id: '',
+                    status: '',
+                    search: ''
+                },
+                pagination: {
+                    total: 0,
+                    per_page: 50,
+                    current_page: 1,
+                    last_page: 1
+                },
+
+                // Modals
+                showSetupModal: false,
+                showDeviceModal: false,
+                showProfitSharingModal: false,
+                showLoadingOverlay: false,
+                showSuccessNotification: false,
+                successMessage: '',
+                showMobileFilters: false, // Mobile filters collapse state
+
+                // Claim
+                showClaimModal: false,
+                claimChipId: '',
+                claimErrors: {},
+                claimLoading: false,
+                scannerActive: false,
+                owners: [],
+
+                // OTA State
+                otaLoading: false,
+                otaStatus: null, // null | 'success' | 'error'
+                otaMessage: '',
+                latestFirmwareVer: null,
+                userPlanTier: '{{ strtolower(auth()->user()->subscription?->plan_tier ?? "free") }}',
+
+                // Selected device
+                selectedDevice: null,
+                detailsLoading: false,
+                pendingProposal: null,
+                activeTab: 'config', // 'config', 'credit', 'system', 'sharing'
+
+
+
+                // QR code URLs cache (chip_id -> data URL)
+                qrUrls: {},
+
+                // Generate QR code for a chip_id
+                async generateQr(chipId, size) {
+                    if (!chipId) return;
+                    size = size || 150;
+                    const key = chipId + '_' + size;
+                    if (this.qrUrls[key]) return;
+                    // Wait for QRCode library if not yet loaded
+                    if (typeof QRCode === 'undefined') {
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        if (typeof QRCode === 'undefined') return;
+                    }
+                    try {
+                        const url = await QRCode.toDataURL(chipId, { width: size, margin: 1 });
+                        this.qrUrls = { ...this.qrUrls, [chipId]: url, [key]: url };
+                    } catch (e) { }
+                },
+
+                // QR code expand state
+                expandedQr: null,
+
+
+
+                // Setup form
+                setupForm: {
+                    name: '',
+                    pulse_to_display: 100,
+                    pulse_to_token: 1.00,
+                    type: '',
+                    type_id: '',
+                    venue_id: '',
+                    placement_type: 'self_operated',
+                    ticket_mode: 'virtual_ticket',
+                    out_pulse_to_ticket: 1,
+                    ticket_value: 1,
+                    direct_prize_cost: 0,
+                    credit_options: '100,200,300,500,1000',
+                    credit_default: 100,
+                    owner_id: ''
+                },
+                setupErrors: {},
+                setupLoading: false,
+
+                // Edit form
+                editForm: {
+                    name: '',
+                    type: '',
+                    type_id: '',
+                    status: '',
+                    venue_id: '',
+                    pulse_to_display: 100,
+                    pulse_to_token: 1.00,
+                    ticket_mode: 'virtual_ticket',
+                    out_pulse_to_ticket: 1,
+                    ticket_value: 1,
+                    direct_prize_cost: 0,
+                    credit_options: '100,200,300,500,1000',
+                    credit_default: 100,
+                    share_device_owner: 100,
+                    share_venue_owner: 0
+                },
+                editErrors: {},
+
+                // Profit sharing form
+                profitSharingForm: {
+                    share_device_owner: 60,
+                    share_venue_owner: 40,
+                    reason: ''
+                },
+                profitSharingErrors: {},
+
+                // Device types (loaded dynamically from API)
+                deviceTypes: [],
+
+                // Device statuses
+                deviceStatuses: [
+                    { value: 'active', label: '正常運營' },
+                    { value: 'maintenance', label: '維護中' },
+                    { value: 'lost', label: '遺失' }
+                ],
+
+                // Business models
+                businessModels: [
+                    { value: 'self_operated', label: '自營' },
+                    { value: 'consignment', label: '寄台' }
+                ],
+
+                getCsrfToken() {
+                    return document.querySelector('meta[name="csrf-token"]').content;
+                },
+
+                normalizeErrors(errors) {
+                    Object.keys(errors).forEach(key => {
+                        if (Array.isArray(errors[key])) {
+                            errors[key] = errors[key][0];
+                        }
+                    });
+                    return errors;
+                },
+
+                parseChipId(value) {
+                    if (!value) return '';
+                    // If it's a URL (contains http or chip= parameter)
+                    if (value.includes('chip=')) {
+                        const url = new URL(value.startsWith('http') ? value : 'https://temp.com?' + value);
+                        return url.searchParams.get('chip') || value;
+                    }
+                    if (value.includes('http')) {
+                        try {
+                            const url = new URL(value);
+                            return url.searchParams.get('chip') || value;
+                        } catch (e) {
+                            return value;
+                        }
+                    }
+                    return value.trim().toUpperCase();
+                },
+
+                async apiRequest(url, method = 'GET', body = null) {
+                    const options = {
+                        method,
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': this.getCsrfToken(),
+                            'Accept': 'application/json'
+                        }
+                    };
+
+                    if (body) {
+                        options.body = JSON.stringify(body);
+                    }
+
+                    return fetch(url, options);
+                },
+
+                init() {
+                    this.loadDeviceTypes();
+                    this.loadDevices();
+
+                    // Initialize WebSocket connection for real-time updates
+                    this.initWebSocket();
+                },
+
+                async loadDeviceTypes() {
+                    try {
+                        const res = await this.apiRequest('/api/v9/device-types');
+                        const result = await res.json();
+                        if (res.ok) this.deviceTypes = result.data;
+                    } catch (e) {
+                        console.error('Failed to load device types:', e);
+                    }
+                },
+
+                async loadDevices() {
+                    this.showLoadingOverlay = true;
+                    try {
+                        const params = new URLSearchParams();
+                        if (this.filters.venue_id) params.append('venue_id', this.filters.venue_id);
+                        if (this.filters.status) params.append('status', this.filters.status);
+                        if (this.filters.search) params.append('search', this.filters.search);
+
+                        const response = await this.apiRequest(`/api/v9/devices?${params}`);
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            this.pendingDevices = result.data.pending || [];
+                            this.activeDevices = result.data.active || [];
+                            this.venues = result.data.venues || [];
+                            this.parameterTemplates = result.data.parameter_templates || [];
+                            this.pagination = result.pagination || {};
+                            this.userRole = result.user_role || '';
+                            this.owners = result.data.owners || [];
+                            // Pre-generate QR codes for pending devices and nameless active devices (admin)
+                            if (this.userRole === 'admin') {
+                                this.pendingDevices.forEach(d => this.generateQr(d.chip_id));
+                                this.activeDevices.filter(d => !d.name).forEach(d => this.generateQr(d.chip_id));
+                            }
+                            // Online status is now included in the API response (backend fetches from infra)
+                        } else {
+                            console.error('Failed to load devices:', result);
+                        }
+                    } catch (error) {
+                        console.error('Load devices error:', error);
+                    } finally {
+                        this.showLoadingOverlay = false;
+                    }
+                },
+
+                async refreshOnlineStatus() {
+                    try {
+                        const response = await this.apiRequest('/api/v9/devices/online-status');
+                        const result = await response.json();
+                        const statusMap = result.data || {};
+                        this.activeDevices = this.activeDevices.map(d => ({
+                            ...d,
+                            is_online: (statusMap[d.chip_id] ?? 'offline') === 'online',
+                        }));
+                    } catch (e) {
+                        console.warn('Failed to fetch online status:', e);
+                    }
+                },
+
+                async loadVenues() {
+                    // This method is now deprecated - venues are loaded with devices
+                    // Kept for backward compatibility, but does nothing
+                },
+
+                async loadParameterTemplates() {
+                    // This method is now deprecated - templates are loaded with devices
+                    // Kept for backward compatibility, but does nothing
+                },
+
+                async loadPendingProposals() {
+                    // This method is now deprecated - proposals are checked per device in backend
+                    // Kept for backward compatibility, but does nothing
+                },
+
+                hasPendingProposal(deviceId) {
+                    // Use device.has_pending_proposal from API (now provided by backend)
+                    const device = this.activeDevices.find(d => d.id === deviceId);
+                    return device ? device.has_pending_proposal : false;
+                },
+
+                applyFilters() {
+                    this.loadDevices();
+                },
+
+                // WebSocket methods
+                initWebSocket() {
+                    if (!window.Echo) {
+                        console.error('Laravel Echo is not initialized');
+                        return;
+                    }
+
+                    console.log('Connecting to WebSocket for device updates...');
+
+                    try {
+                        // Subscribe to realtime channel
+                        window.Echo.channel('realtime')
+                            .listen('.device.updated', (event) => {
+                                this.handleDeviceUpdate(event);
+                            });
+
+                        console.log('WebSocket connected successfully for device page');
+                    } catch (error) {
+                        console.error('Failed to connect to WebSocket:', error);
+                    }
+                },
+
+                handleDeviceUpdate(event) {
+                    // console.log('Device update received:', event);
+
+                    const { device_id, data } = event;
+
+                    // Find device in active devices list
+                    const deviceIndex = this.activeDevices.findIndex(d => d.chip_id === device_id);
+
+                    if (deviceIndex !== -1) {
+                        const device = this.activeDevices[deviceIndex];
+
+                        // Update device status if provided
+                        if (data.status !== undefined) {
+                            device.is_online = data.status === 'online';
+                            device.last_seen_at = new Date().toISOString();
+                        }
+
+                        // Update today's revenue if provided
+                        if (data.today_revenue !== undefined) {
+                            device.today_revenue = data.today_revenue;
+                        }
+
+                        // Trigger reactivity by replacing the device in array
+                        this.activeDevices[deviceIndex] = { ...device };
+
+                        // console.log(`Updated device ${device.name}: revenue=${device.today_revenue}, online=${device.is_online}`);
+                    }
+                },
+
+                async claimDevice() {
+                    const finalChipId = this.parseChipId(this.claimChipId);
+                    if (!finalChipId) return;
+
+                    this.claimLoading = true;
+                    this.claimErrors = {};
+                    try {
+                        const response = await this.apiRequest('/api/v9/devices/claim', 'POST', { chip_id: finalChipId });
+                        const result = await response.json();
+                        if (response.ok) {
+                            this.pendingDevices.unshift(result.data);
+                            this.showClaimModal = false;
+                            this.claimChipId = '';
+                            this.showSuccessMessage('設備認領成功');
+                        } else {
+                            this.claimErrors = result.errors || {};
+                        }
+                    } catch (error) {
+                        console.error('Claim error:', error);
+                        this.claimErrors = { chip_id: '認領失敗，請稍後再試' };
+                    } finally {
+                        this.claimLoading = false;
+                    }
+                },
+
+                startScanner() {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        this.claimErrors = { chip_id: '此瀏覽器不支援相機，請手動輸入 Chip ID' };
+                        return;
+                    }
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                        .then(stream => {
+                            this.scannerActive = true;
+                            const video = this.$refs.scannerVideo;
+                            const canvas = this.$refs.scannerCanvas;
+                            video.srcObject = stream;
+                            video.play();
+                            const scan = () => {
+                                if (!this.scannerActive) return;
+                                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                                    canvas.width = video.videoWidth;
+                                    canvas.height = video.videoHeight;
+                                    canvas.getContext('2d').drawImage(video, 0, 0);
+                                    const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                                    if (code) {
+                                        this.claimChipId = this.parseChipId(code.data);
+                                        this.stopScanner();
+                                        this.claimDevice();
+                                        return;
+                                    }
+                                }
+                                setTimeout(scan, 200);
+                            };
+                            scan();
+                        })
+                        .catch(() => {
+                            this.claimErrors = { chip_id: '相機權限被拒，請手動輸入 Chip ID' };
+                        });
+                },
+
+                stopScanner() {
+                    this.scannerActive = false;
+                    const video = this.$refs.scannerVideo;
+                    if (video && video.srcObject) {
+                        video.srcObject.getTracks().forEach(t => t.stop());
+                        video.srcObject = null;
+                    }
+                },
+
+                openSetupModal(device) {
+                    this.selectedDevice = device;
+                    this.setupForm = {
+                        name: '',
+                        pulse_to_display: 100,
+                        pulse_to_token: 1.00,
+                        ticket_mode: 'virtual_ticket',
+                        out_pulse_to_ticket: 1,
+                        ticket_value: 1,
+                        direct_prize_cost: 0,
+                        credit_options: '100,200,500,1000',
+                        credit_default: 100,
+                        type: '',
+                        type_id: '',
+                        venue_id: '',
+                        placement_type: 'self_operated'
+                    };
+                    this.setupErrors = {};
+                    this.showSetupModal = true;
+                },
+
+                applyTemplate(template) {
+                    if (!template || !template.config) return;
+                    const config = typeof template.config === 'string' ? JSON.parse(template.config) : template.config;
+
+                    this.setupForm.pulse_to_display = config.pulse_to_display || 100;
+                    this.setupForm.pulse_to_token = config.pulse_to_token || 1.00;
+                    this.setupForm.ticket_mode = config.ticket_mode || 'virtual_ticket';
+                    this.setupForm.out_pulse_to_ticket = config.out_pulse_to_ticket || 1;
+                    this.setupForm.ticket_value = config.ticket_value || 1;
+                    this.setupForm.direct_prize_cost = config.direct_prize_cost || 0;
+
+                    if (config.credit_options) {
+                        this.setupForm.credit_options = Array.isArray(config.credit_options) ? config.credit_options.join(',') : config.credit_options;
+                    }
+                    if (config.credit_default) {
+                        this.setupForm.credit_default = config.credit_default;
+                    }
+
+                    this.showSuccessMessage(`已套用模板：${template.name}`);
+                },
+
+                calculatePreview() {
+                    // Simple preview for V2: 
+                    // 1 Pulse = pulse_to_display points
+                    // 1 Pulse = pulse_to_token tokens
+                    return {
+                        pointsPerPulse: this.setupForm.pulse_to_display,
+                        tokensPerPulse: this.setupForm.pulse_to_token
+                    };
+                },
+
+                async completeSetup() {
+                    this.setupLoading = true;
+                    this.setupErrors = {};
+
+                    // Sync type string from type_id
+                    const selectedType = this.deviceTypes.find(t => t.id == this.setupForm.type_id);
+                    if (selectedType) {
+                        this.setupForm.type = selectedType.name;
+                    }
+
+                    try {
+                        const response = await this.apiRequest(
+                            `/api/v9/devices/${this.selectedDevice.id}/setup`,
+                            'PUT',
+                            this.setupForm
+                        );
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            this.pendingDevices = this.pendingDevices.filter(d => d.id !== this.selectedDevice.id);
+                            this.activeDevices.unshift(result.data.device);
+                            this.showSetupModal = false;
+                            this.showSuccessMessage('設備設置完成');
+                        } else {
+                            this.setupErrors = this.normalizeErrors(result.errors || {});
+                            if (!Object.keys(this.setupErrors).length) {
+                                this.setupErrors = { general: result.message || '設置失敗，請檢查輸入內容' };
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Complete setup error:', error);
+                        this.setupErrors = { general: '網絡錯誤，請稍後再試' };
+                    } finally {
+                        this.setupLoading = false;
+                    }
+                },
+
+                openDeviceModal(device) {
+                    this.selectedDevice = { ...device };
+                    this.detailsLoading = false; // Data is already in the list object
+                    this.pendingProposal = null;
+                    this.activeTab = 'config';
+
+                    // Parse credit options from config_json if available
+                    let creditOptions = '100,200,300,500,1000';
+                    let creditDefault = 100;
+
+                    if (device.config_json) {
+                        const config = typeof device.config_json === 'string' ? JSON.parse(device.config_json) : device.config_json;
+                        if (config.credit_options) {
+                            creditOptions = config.credit_options.join(',');
+                        }
+                        if (config.credit_default) {
+                            creditDefault = config.credit_default;
+                        }
+                    }
+
+                    this.editForm = {
+                        name: device.name,
+                        type: device.type,
+                        type_id: device.type_id || '',
+                        status: device.status,
+                        venue_id: device.venue_id,
+                        pulse_to_display: device.pulse_to_display || 100,
+                        pulse_to_token: device.pulse_to_token || 1.00,
+                        ticket_mode: device.ticket_mode || 'virtual_ticket',
+                        out_pulse_to_ticket: device.out_pulse_to_ticket || 1,
+                        ticket_value: device.ticket_value || 1,
+                        direct_prize_cost: device.direct_prize_cost || 0,
+                        credit_options: creditOptions,
+                        credit_default: creditDefault,
+                        placement_type: device.placement_type || 'self_operated',
+                        share_device_owner: device.share_device_owner || 100,
+                        share_venue_owner: device.share_venue_owner || 0
+                    };
+                    this.editErrors = {};
+                    this.showDeviceModal = true;
+
+                    // Generate QR code for this device
+                    this.generateQr(device.chip_id);
+
+                    // Load device details including profit sharing info
+                    this.loadDeviceDetails(device.id);
+                },
+
+                async loadDeviceDetails(deviceId) {
+                    // We already have basic data from the list, but we fetch details for absolute freshness
+                    // and to get the full venue/owner objects if needed.
+                    try {
+                        const response = await this.apiRequest(`/api/v9/devices/${deviceId}`);
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            this.selectedDevice = { ...this.selectedDevice, ...result.data };
+                            
+                            // Update the device in the main lists to ensure persistence
+                            const index = this.activeDevices.findIndex(d => d.id === deviceId);
+                            if (index !== -1) {
+                                this.activeDevices[index] = { ...this.activeDevices[index], ...result.data };
+                            }
+
+                            // ⚠️ FIX: Sync fresh detail data back into editForm.
+                            // Without this, if the user clicks Save right after opening the modal,
+                            // editForm still holds stale list data (missing type_id, venue_id, etc.)
+                            // which would overwrite the correct DB values with nulls/defaults.
+                            const d = result.data;
+                            let freshCreditOptions = this.editForm.credit_options;
+                            let freshCreditDefault = this.editForm.credit_default;
+                            if (d.config_json) {
+                                const cfg = typeof d.config_json === 'string' ? JSON.parse(d.config_json) : d.config_json;
+                                if (cfg.credit_options) freshCreditOptions = cfg.credit_options.join(',');
+                                if (cfg.credit_default) freshCreditDefault = cfg.credit_default;
+                            }
+                            this.editForm = {
+                                ...this.editForm,
+                                name:               d.name               ?? this.editForm.name,
+                                type:               d.type               ?? this.editForm.type,
+                                type_id:            d.type_id            !== undefined ? (d.type_id || '') : this.editForm.type_id,
+                                status:             d.status             ?? this.editForm.status,
+                                venue_id:           d.venue_id           !== undefined ? d.venue_id : this.editForm.venue_id,
+                                pulse_to_display:   d.pulse_to_display   ?? this.editForm.pulse_to_display,
+                                pulse_to_token:     d.pulse_to_token     ?? this.editForm.pulse_to_token,
+                                ticket_mode:        d.ticket_mode        ?? this.editForm.ticket_mode,
+                                out_pulse_to_ticket:d.out_pulse_to_ticket?? this.editForm.out_pulse_to_ticket,
+                                ticket_value:       d.ticket_value       ?? this.editForm.ticket_value,
+                                direct_prize_cost:  d.direct_prize_cost  ?? this.editForm.direct_prize_cost,
+                                placement_type:     d.placement_type     ?? this.editForm.placement_type,
+                                share_device_owner: d.share_device_owner ?? this.editForm.share_device_owner,
+                                share_venue_owner:  d.share_venue_owner  ?? this.editForm.share_venue_owner,
+                                credit_options:     freshCreditOptions,
+                                credit_default:     freshCreditDefault,
+                            };
+
+                            // Check for pending proposals
+                            await this.checkPendingProposal(deviceId);
+                        }
+                    } catch (error) {
+                        console.error('Load device details error:', error);
+                    } finally {
+                        this.detailsLoading = false;
+                    }
+                },
+
+                async checkPendingProposal(deviceId) {
+                    try {
+                        const response = await this.apiRequest('/api/v9/profit-sharing/proposals/pending');
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            // Find proposal for this device
+                            this.pendingProposal = result.data.find(p => p.device.id === deviceId) || null;
+                        }
+                    } catch (error) {
+                        console.error('Check pending proposal error:', error);
+                    }
+                },
+
+                async saveDevice() {
+                    this.showLoadingOverlay = true;
+                    this.editErrors = {};
+
+                    // Debug: 檢查表單數據
+                    console.log('Saving device with form data:', this.editForm);
+
+                    // Sync type string from type_id
+                    const selectedType = this.deviceTypes.find(t => t.id == this.editForm.type_id);
+                    if (selectedType) {
+                        this.editForm.type = selectedType.name;
+                    }
+
+                    try {
+                        const response = await this.apiRequest(
+                            `/api/v9/devices/${this.selectedDevice.id}`,
+                            'PUT',
+                            this.editForm
+                        );
+                        const result = await response.json();
+
+                        // Debug: 檢查響應
+                        console.log('API Response:', result);
+                        console.log('Response status:', response.status);
+                        console.log('Response ok:', response.ok);
+
+                        if (response.ok) {
+                            // 先關閉 modal，避免後續操作拋錯導致 modal 不關閉
+                            this.showDeviceModal = false;
+                            
+                            // 顯示成功提示
+                            this.showSuccessMessage('設備參數更新成功！');
+                            
+                            // Update device in active list
+                            const index = this.activeDevices.findIndex(d => d.id === result.data.id);
+                            if (index !== -1) {
+                                // Use splice() instead of direct index assignment to guarantee
+                                // Alpine.js reactivity (array[i] = x is not reactive in Alpine v2)
+                                this.activeDevices.splice(index, 1, result.data);
+                            }
+                            this.selectedDevice = result.data;
+                        } else {
+                            console.error('API Error:', result);
+                            this.editErrors = this.normalizeErrors(result.errors || {});
+                        }
+                    } catch (error) {
+                        console.error('Save device error:', error);
+                        this.editErrors = { general: '保存失敗，請檢查網絡連接' };
+                    } finally {
+                        this.showLoadingOverlay = false;
+                    }
+                },
+
+                showSuccessMessage(message) {
+                    this.successMessage = message;
+                    this.showSuccessNotification = true;
+                    setTimeout(() => {
+                        this.showSuccessNotification = false;
+                    }, 3000);
+                },
+
+                formatDateTime(dateString) {
+                    if (!dateString) return '-';
+                    const date = new Date(dateString);
+                    const year = date.getFullYear().toString().slice(-2);
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hour = String(date.getHours()).padStart(2, '0');
+                    const minute = String(date.getMinutes()).padStart(2, '0');
+                    return `${year}${month}${day}/${hour}:${minute}`;
+                },
+
+                getDeviceTypeLabel(device) {
+                    // Priority: type_id → dynamic name; fallback to legacy type enum
+                    if (device && device.type_id) {
+                        const found = this.deviceTypes.find(t => t.id === device.type_id);
+                        if (found) return found.name;
+                    }
+                    if (device && device.type) {
+                        // Legacy enum fallback labels
+                        const legacy = { claw: '娃娃機', washer: '彈珠台', arcade: '街機', gambling: '博弈機', fruit: '水果台', other: '其他' };
+                        return legacy[device.type] || device.type;
+                    }
+                    return '未分類';
+                },
+
+                getStatusLabel(status) {
+                    const found = this.deviceStatuses.find(s => s.value === status);
+                    return found ? found.label : status;
+                },
+
+                // Profit sharing methods
+                openProfitSharingModal() {
+                    if (!this.selectedDevice) return;
+
+                    // Check if there's a pending proposal for this device
+                    this.pendingProposal = this.pendingProposalsByDevice[this.selectedDevice.id] || null;
+
+                    this.profitSharingForm = {
+                        share_device_owner: this.selectedDevice.share_device_owner || 60,
+                        share_venue_owner: this.selectedDevice.share_venue_owner || 40,
+                        reason: ''
+                    };
+                    this.profitSharingErrors = {};
+                    this.showProfitSharingModal = true;
+                },
+
+                validateProfitSharing() {
+                    const total = parseFloat(this.profitSharingForm.share_device_owner) +
+                        parseFloat(this.profitSharingForm.share_venue_owner);
+                    return Math.abs(total - 100) < 0.01; // Allow small floating point errors
+                },
+
+                async submitProfitSharingProposal() {
+                    if (!this.validateProfitSharing()) {
+                        this.profitSharingErrors = {
+                            share_device_owner: '分潤比例加總必須為 100%',
+                            share_venue_owner: '分潤比例加總必須為 100%'
+                        };
+                        return;
+                    }
+
+                    this.showLoadingOverlay = true;
+                    this.profitSharingErrors = {};
+
+                    try {
+                        const response = await this.apiRequest(
+                            `/api/v9/devices/${this.selectedDevice.id}/profit-sharing/propose`,
+                            'POST',
+                            this.profitSharingForm
+                        );
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            this.showProfitSharingModal = false;
+                            this.showSuccessMessage('分潤提案已創建，等待對方確認');
+                            // Reload device details to show pending proposal
+                            await this.loadDeviceDetails(this.selectedDevice.id);
+                        } else {
+                            // Handle validation errors
+                            if (result.errors) {
+                                this.profitSharingErrors = this.normalizeErrors(result.errors);
+
+                                // If there's a device-level error (like existing proposal), handle it
+                                if (result.errors.device) {
+                                    this.showLoadingOverlay = false;
+
+                                    // Check if there's a pending proposal that user can cancel
+                                    if (this.pendingProposal && this.pendingProposal.proposer_id === this.currentUserId) {
+                                        // User is the proposer, ask if they want to cancel
+                                        if (confirm('該設備已有待審批的分潤提案。是否要撤銷舊提案並提交新的？')) {
+                                            await this.cancelAndResubmit();
+                                        } else {
+                                            this.showProfitSharingModal = false;
+                                        }
+                                    } else {
+                                        // User is not the proposer, just show message
+                                        this.showProfitSharingModal = false;
+                                        this.showSuccessMessage(result.errors.device);
+                                    }
+                                    return;
+                                }
+                            } else if (result.message) {
+                                this.showProfitSharingModal = false;
+                                this.showSuccessMessage(result.message);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Submit profit sharing proposal error:', error);
+                        this.showSuccessMessage('提交失敗，請稍後再試');
+                    } finally {
+                        this.showLoadingOverlay = false;
+                    }
+                },
+
+                async cancelAndResubmit() {
+                    if (!this.pendingProposal) return;
+
+                    this.showLoadingOverlay = true;
+
+                    try {
+                        // Cancel the existing proposal
+                        const cancelResponse = await this.apiRequest(
+                            `/api/v9/profit-sharing/proposals/${this.pendingProposal.id}/cancel`,
+                            'POST'
+                        );
+
+                        if (!cancelResponse.ok) {
+                            const cancelResult = await cancelResponse.json();
+                            this.showSuccessMessage(cancelResult.message || '撤銷提案失敗');
+                            return;
+                        }
+
+                        // Submit new proposal
+                        const proposeResponse = await this.apiRequest(
+                            `/api/v9/devices/${this.selectedDevice.id}/profit-sharing/propose`,
+                            'POST',
+                            this.profitSharingForm
+                        );
+                        const proposeResult = await proposeResponse.json();
+
+                        if (proposeResponse.ok) {
+                            this.showProfitSharingModal = false;
+                            this.showSuccessMessage('已撤銷舊提案並創建新提案，等待對方確認');
+                            // Reload device details to show new pending proposal
+                            await this.loadDeviceDetails(this.selectedDevice.id);
+                        } else {
+                            this.profitSharingErrors = this.normalizeErrors(proposeResult.errors || {});
+                            this.showSuccessMessage(proposeResult.message || '提交新提案失敗');
+                        }
+                    } catch (error) {
+                        console.error('Cancel and resubmit error:', error);
+                        this.showSuccessMessage('操作失敗，請稍後再試');
+                    } finally {
+                        this.showLoadingOverlay = false;
+                    }
+                },
+
+                async approveProposal(proposalId) {
+                    if (!confirm('確定要同意此分潤提案嗎？')) return;
+
+                    this.showLoadingOverlay = true;
+
+                    try {
+                        const response = await this.apiRequest(
+                            `/api/v9/profit-sharing/proposals/${proposalId}/approve`,
+                            'POST'
+                        );
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            this.showSuccessMessage('分潤提案已同意，新比例已生效');
+                            // Reload device details
+                            await this.loadDeviceDetails(this.selectedDevice.id);
+                            // Reload device list to update the device
+                            await this.loadDevices();
+                        } else {
+                            this.showSuccessMessage(result.message || '操作失敗');
+                        }
+                    } catch (error) {
+                        console.error('Approve proposal error:', error);
+                        this.showSuccessMessage('操作失敗，請稍後再試');
+                    } finally {
+                        this.showLoadingOverlay = false;
+                    }
+                },
+
+                async rejectProposal(proposalId) {
+                    if (!confirm('確定要拒絕此分潤提案嗎？')) return;
+
+                    this.showLoadingOverlay = true;
+
+                    try {
+                        const response = await this.apiRequest(
+                            `/api/v9/profit-sharing/proposals/${proposalId}/reject`,
+                            'POST'
+                        );
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            this.showSuccessMessage('分潤提案已拒絕');
+                            // Reload device details
+                            await this.loadDeviceDetails(this.selectedDevice.id);
+                        } else {
+                            this.showSuccessMessage(result.message || '操作失敗');
+                        }
+                    } catch (error) {
+                        console.error('Reject proposal error:', error);
+                        this.showSuccessMessage('操作失敗，請稍後再試');
+                    } finally {
+                        this.showLoadingOverlay = false;
+                    }
+                },
+
+                canModifyProfitSharing() {
+                    if (!this.selectedDevice) return false;
+
+                    // Admin cannot modify profit sharing (read-only)
+                    if (this.userRole === 'admin') {
+                        return false;
+                    }
+
+                    // If there's a pending proposal, no one can modify
+                    if (this.selectedDevice.has_pending_proposal) {
+                        return false;
+                    }
+
+                    // If device owner and venue owner are the same person, no profit sharing needed
+                    if (this.selectedDevice.owner_id && this.selectedDevice.venue_owner_id) {
+                        if (this.selectedDevice.owner_id === this.selectedDevice.venue_owner_id) {
+                            return false; // Same owner, no profit sharing
+                        }
+                    }
+
+                    // User can modify if they are device owner or venue owner
+                    return true; // Backend will handle authorization
+                },
+
+                isApprover() {
+                    if (!this.pendingProposal) return false;
+                    // Only show approve/reject buttons if current user is the approver
+                    return this.pendingProposal.approver_id === this.currentUserId;
+                },
+
+                isProposer() {
+                    if (!this.pendingProposal) return false;
+                    // Only show cancel button if current user is the proposer
+                    return this.pendingProposal.proposer_id === this.currentUserId;
+                },
+
+                canTriggerOta() {
+                    return ['pro', 'enterprise'].includes(this.userPlanTier);
+                },
+
+                async triggerOta(deviceId) {
+                    if (!confirm(`確定要強制觸發此設備立即執行韌體更新嗎？\n設備將稍後自動重啟。`)) return;
+                    this.otaLoading = true;
+                    this.otaStatus = null;
+                    this.otaMessage = '';
+                    try {
+                        const res = await this.apiRequest(`/api/v9/devices/${deviceId}/ota/trigger`, 'POST');
+                        const result = await res.json();
+                        if (res.ok && result.success) {
+                            this.otaStatus = 'success';
+                            this.otaMessage = result.message;
+                            this.latestFirmwareVer = result.firmware_ver;
+                        } else {
+                            this.otaStatus = 'error';
+                            this.otaMessage = result.message || '觸發失敗，請稍後再試';
+                        }
+                    } catch (e) {
+                        this.otaStatus = 'error';
+                        this.otaMessage = '網路錯誤，請稍後再試';
+                    } finally {
+                        this.otaLoading = false;
+                    }
+                },
+
+                async setPolarity(deviceId, polarity) {
+                    const label = polarity === 'active_low' ? '低電平觸發 (Huga)' : '高電平觸發 (KingApple)';
+                    if (!confirm(`確定要將設備極性切換為 [${label}] 嗎？\n設備接收指令後將自動重啟。`)) return;
+                    
+                    this.showLoadingOverlay = true;
+                    try {
+                        const res = await this.apiRequest(`/api/v9/devices/${deviceId}/set-polarity`, 'POST', { polarity });
+                        const result = await res.json();
+                        if (res.ok && result.success) {
+                            this.successMessage = result.message;
+                            this.showSuccessNotification = true;
+                            setTimeout(() => { this.showSuccessNotification = false; }, 3000);
+                        } else {
+                            alert(result.message || '設定失敗');
+                        }
+                    } catch (e) {
+                        alert('網路錯誤，請稍後再試');
+                    } finally {
+                        this.showLoadingOverlay = false;
+                    }
+                },
+
+                async cancelProposal(proposalId) {
+                    if (!confirm('確定要撤銷此分潤提案嗎？')) return;
+
+                    this.showLoadingOverlay = true;
+
+                    try {
+                        const response = await this.apiRequest(
+                            `/api/v9/profit-sharing/proposals/${proposalId}/cancel`,
+                            'POST'
+                        );
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            this.showSuccessMessage('提案已撤銷');
+                            // Reload device details
+                            await this.loadDeviceDetails(this.selectedDevice.id);
+                        } else {
+                            this.showSuccessMessage(result.message || '撤銷失敗');
+                        }
+                    } catch (error) {
+                        console.error('Cancel proposal error:', error);
+                        this.showSuccessMessage('撤銷失敗，請稍後再試');
+                    } finally {
+                        this.showLoadingOverlay = false;
+                    }
+                }
+            };
+        };
+    </script>
+@endpush
+
+@section('content')
+    <div x-data="deviceManagement()" x-init="init()" class="flex flex-col h-full">
+
+        <!-- Loading Overlay -->
+        <x-loading-spinner show="showLoadingOverlay" />
+
+        <!-- Header + Filters Section -->
+        <div class="px-2 sm:px-4 lg:px-6 mb-4 sm:mb-5 lg:mb-6 flex-shrink-0">
+            <div class="flex flex-col gap-3">
+                <!-- Title Row -->
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <!-- 狀態說明 -->
+                        <div class="flex items-center gap-2 text-xs font-bold">
+                            <span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"></span>
+                                <span class="text-slate-600 dark:text-slate-400">正常</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0"></span>
+                                <span class="text-slate-600 dark:text-slate-400">維護</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></span>
+                                <span class="text-slate-600 dark:text-slate-400">遺失</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <!-- Claim Button (owner/staff only) (TASK_20260522_004 — 已由出廠指定業主與預約佔位重構取代，UI 予以隱藏) -->
+                        <template x-if="false">
+                            <button @click="showClaimModal = true"
+                                class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-lg transition-all shadow-lg shadow-sky-500/20 text-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+                                    </path>
+                                </svg>
+                                <span class="hidden sm:inline">掃描認領</span>
+                            </button>
+                        </template>
+                        <!-- Filter Toggle -->
+                        <button @click="showMobileFilters = !showMobileFilters"
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-lg transition-all text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
+                                </path>
+                            </svg>
+                            <span x-text="showMobileFilters ? '收起' : '篩選'"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Collapsible Filters (absolute dropdown) -->
+                <div class="relative">
+                    <div x-show="showMobileFilters" x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-2" @click.outside="showMobileFilters = false"
+                        class="absolute top-0 left-0 right-0 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-3 flex flex-col gap-2">
+                        <!-- Search -->
+                        <input type="text" x-model="filters.search" @input="applyFilters()" placeholder="搜尋設備名稱或 Chip ID..."
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-sm">
+                        <!-- Filters Row -->
+                        <div class="flex gap-2">
+                            <select x-model="filters.venue_id" @change="applyFilters()"
+                                class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-sm">
+                                <option value="">全部場地</option>
+                                <template x-for="venue in venues" :key="venue.id">
+                                    <option :value="venue.id" x-text="venue.name"></option>
+                                </template>
+                            </select>
+                            <select x-model="filters.status" @change="applyFilters()"
+                                class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-sm">
+                                <option value="">全部狀態</option>
+                                <option value="active">正常</option>
+                                <option value="maintenance">維護中</option>
+                                <option value="lost">遺失</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Devices Section -->
+        <div x-show="pendingDevices.length > 0" class="px-2 sm:px-4 lg:px-6 mb-4 sm:mb-5 lg:mb-6 flex-shrink-0">
+            <h3 class="text-base lg:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">待設置設備</h3>
+            <div class="space-y-2">
+                <template x-for="device in pendingDevices" :key="device.id">
+                    <div
+                        class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 sm:p-4 flex items-center justify-between">
+                        <div class="min-w-0 flex-1 mr-3 flex items-center gap-3">
+                            <!-- QR Code (admin only) -->
+                            <template x-if="userRole === 'admin'">
+                                <div class="relative flex-shrink-0">
+                                    <img :src="qrUrls[device.chip_id] || ''" :alt="device.chip_id"
+                                        x-init="generateQr(device.chip_id)" @click="expandedQr = device.chip_id"
+                                        class="w-16 h-16 rounded cursor-pointer hover:opacity-80 transition-opacity border border-yellow-300 dark:border-yellow-700 bg-white">
+                                </div>
+                            </template>
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-slate-900 dark:text-white truncate font-mono"
+                                    x-text="device.chip_id"></p>
+                                <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                                    <p x-show="device.firmware_ver" class="text-xs text-slate-500 dark:text-slate-400">
+                                        韌體 <span class="font-mono" x-text="device.firmware_ver"></span>
+                                    </p>
+                                    <p x-show="device.timezone" class="text-xs text-slate-500 dark:text-slate-400"
+                                        x-text="device.timezone"></p>
+                                    <p x-show="device.created_at" class="text-xs text-slate-500 dark:text-slate-400"
+                                        x-text="device.created_at ? new Date(device.created_at).toLocaleString('zh-TW') : ''">
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button @click="openSetupModal(device)"
+                            class="px-3 sm:px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-lg text-sm transition-all flex-shrink-0">
+                            完成設置
+                        </button>
+                    </div>
+                </template>
+
+                <!-- QR Code Expanded Overlay -->
+                <div x-show="expandedQr !== null" @click="expandedQr = null"
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70" style="display: none;">
+                    <div @click.stop
+                        class="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-3 max-w-xs w-full mx-4">
+                        <p class="text-sm font-bold text-slate-700 dark:text-slate-300 font-mono text-center break-all"
+                            x-text="expandedQr"></p>
+                        <img :src="qrUrls[expandedQr] || ''" :alt="expandedQr"
+                            class="w-64 h-64 rounded-lg border border-slate-200 dark:border-slate-700 bg-white">
+                        <button @click="expandedQr = null"
+                            class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-sm">
+                            關閉
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device List Table -->
+        <div class="flex-1 overflow-hidden flex flex-col px-1 sm:px-2 lg:px-6 min-h-0">
+            <div
+                class="flex-1 overflow-auto overflow-x-auto border border-slate-200 dark:border-white/5 rounded-lg sm:rounded-xl shadow-sm">
+                <table class="w-full min-w-[600px] border-collapse table-fixed">
+                    <thead class="bg-slate-100 dark:bg-white/5 sticky top-0 z-10">
+                        <tr>
+                            <th class="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left"
+                                :style="userRole === 'admin' ? 'width: 16%' : 'width: 20%'">
+                                <div class="flex flex-col">
+                                    <span
+                                        class="text-base font-black text-slate-900 dark:text-slate-300 uppercase">設備名稱</span>
+                                    <span
+                                        class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase sm:hidden">場地</span>
+                                </div>
+                            </th>
+                            <th class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left hidden sm:table-cell"
+                                :style="userRole === 'admin' ? 'width: 11%' : 'width: 14%'">
+                                <span class="text-base font-black text-slate-900 dark:text-slate-300 uppercase">Chip
+                                    ID</span>
+                            </th>
+                            <th class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:px-4 text-left hidden sm:table-cell"
+                                :style="userRole === 'admin' ? 'width: 12%' : 'width: 15%'">
+                                <span class="text-base font-black text-slate-900 dark:text-slate-300 uppercase">場地</span>
+                            </th>
+                            <th x-show="userRole === 'admin'"
+                                class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left hidden sm:table-cell"
+                                style="width: 11%">
+                                <span class="text-base font-black text-slate-900 dark:text-slate-300 uppercase">擁有者</span>
+                            </th>
+                            <th class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left" style="width: 7%">
+                                <div class="flex flex-col">
+                                    <span
+                                        class="text-base font-black text-slate-900 dark:text-slate-300 uppercase">類型</span>
+                                </div>
+                            </th>
+                            <th class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-right" style="width: 9%">
+                                <div class="flex flex-col items-end">
+                                    <span
+                                        class="text-base font-black text-slate-900 dark:text-slate-300 uppercase">淨利 / 開洗分</span>
+                                    <span
+                                        class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase sm:hidden">最後上線</span>
+                                </div>
+                            </th>
+                            <th class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left hidden sm:table-cell"
+                                style="width: 11%">
+                                <span class="text-base font-black text-slate-900 dark:text-slate-300 uppercase">最後上線</span>
+                            </th>
+                            <th class="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-center" style="width: 10%">
+                                <span class="text-base font-black text-slate-900 dark:text-slate-300 uppercase">操作</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-white/5">
+                        <template x-for="device in activeDevices" :key="device.id">
+                            <tr
+                                class="bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                                <!-- Name + Venue (combined on mobile < 640px) -->
+                                <td class="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left cursor-pointer"
+                                    :style="userRole === 'admin' ? 'width: 16%' : 'width: 20%'"
+                                    @click="openDeviceModal(device)">
+                                    <div class="flex flex-col gap-0.5">
+                                        <div class="flex items-center gap-2">
+                                            <!-- 有名稱顯示名稱，無名稱 admin 顯示 QR code -->
+                                            <template x-if="device.name">
+                                                <span
+                                                    class="text-base font-bold hover:opacity-80 transition-opacity overflow-hidden whitespace-nowrap block"
+                                                    :class="device.status === 'active' ? 'text-sky-600 dark:text-sky-400' : device.status === 'maintenance' ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'"
+                                                    :title="device.name" style="text-overflow: ellipsis;"
+                                                    x-text="device.name"></span>
+                                            </template>
+                                            <template x-if="!device.name && userRole === 'admin'">
+                                                <img :src="qrUrls[device.chip_id] || ''" :alt="device.chip_id"
+                                                    @click.stop="expandedQr = device.chip_id"
+                                                    class="w-10 h-10 rounded cursor-pointer hover:opacity-80 transition-opacity border border-slate-200 dark:border-slate-700 bg-white flex-shrink-0">
+                                            </template>
+                                            <template x-if="hasPendingProposal(device.id)">
+                                                <span
+                                                    class="inline-flex px-2 py-0.5 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30 rounded text-xs font-bold whitespace-nowrap">
+                                                    待審批
+                                                </span>
+                                            </template>
+                                        </div>
+                                        <span
+                                            class="text-sm font-medium text-slate-500 dark:text-slate-500 truncate block sm:hidden"
+                                            :title="device.venue_name" style="text-overflow: ellipsis;"
+                                            x-text="device.venue_name || '未分配'"></span>
+                                    </div>
+                                </td>
+
+                                <!-- Chip ID (hidden on mobile < 640px) -->
+                                <td class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left hidden sm:table-cell"
+                                    :style="userRole === 'admin' ? 'width: 11%' : 'width: 14%'">
+                                    <span class="text-base font-medium text-slate-600 dark:text-slate-400 truncate block"
+                                        :title="device.chip_id" style="text-overflow: ellipsis;"
+                                        x-text="device.chip_id"></span>
+                                </td>
+
+                                <!-- Venue (hidden on mobile < 640px) -->
+                                <td class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left hidden sm:table-cell"
+                                    :style="userRole === 'admin' ? 'width: 12%' : 'width: 15%'">
+                                    <span class="text-base font-medium text-slate-600 dark:text-slate-400 truncate block"
+                                        :title="device.venue_name" style="text-overflow: ellipsis;"
+                                        x-text="device.venue_name || '未分配'"></span>
+                                </td>
+
+                                <!-- Owner (only for admin, hidden on mobile < 640px) -->
+                                <td x-show="userRole === 'admin'"
+                                    class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left hidden sm:table-cell"
+                                    style="width: 11%">
+                                    <span class="text-base font-medium text-slate-600 dark:text-slate-400 truncate block"
+                                        :title="device.owner_name" style="text-overflow: ellipsis;"
+                                        x-text="device.owner_name || '-'"></span>
+                                </td>
+
+                                <!-- Type -->
+                                <td class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left" style="width: 7%">
+                                    <span class="text-base font-medium text-slate-600 dark:text-slate-400"
+                                        x-text="getDeviceTypeLabel(device)"></span>
+                                </td>
+
+                                <!-- Revenue + Credit In/Out + Last Seen (combined on mobile < 640px) -->
+                                <td class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-right" style="width: 9%">
+                                    <div class="flex flex-col gap-0.5 items-end">
+                                        <span class="text-xl font-bold text-slate-900 dark:text-white"
+                                            x-text="device.today_revenue || 0"></span>
+                                        <div class="flex items-center gap-1 text-xs font-medium">
+                                            <span class="text-emerald-500" x-text="`開: ${device.today_credit_in || 0}`"></span>
+                                            <span class="text-slate-400">/</span>
+                                            <span class="text-rose-500" x-text="`洗: ${device.today_credit_out || 0}`"></span>
+                                        </div>
+                                        <span class="text-xs font-medium text-slate-500 dark:text-slate-500 sm:hidden mt-0.5"
+                                            x-text="formatDateTime(device.last_seen_at)"></span>
+                                    </div>
+                                </td>
+
+                                <!-- Last Seen (hidden on mobile < 640px) -->
+                                <td class="px-1 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-left hidden sm:table-cell"
+                                    style="width: 11%">
+                                    <span class="text-base font-medium text-slate-600 dark:text-slate-400"
+                                        x-text="formatDateTime(device.last_seen_at)"></span>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 text-center" style="width: 10%">
+                                    <button @click="openDeviceModal(device)" type="button"
+                                        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                        詳情
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template x-if="activeDevices.length === 0">
+                            <tr>
+                                <td colspan="8" class="px-4 sm:px-6 py-12 sm:py-24">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <div
+                                            class="w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-slate-200 dark:bg-slate-900 flex items-center justify-center mb-3 sm:mb-4 ring-1 ring-slate-300 dark:ring-white/10">
+                                            <svg class="w-5 sm:w-6 h-5 sm:h-6 text-slate-600 dark:text-slate-400"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                                                </path>
+                                            </svg>
+                                        </div>
+                                        <p class="text-slate-600 dark:text-slate-400 font-bold text-sm">暫無設備數據</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Success Notification -->
+        <x-success-notification x-show="showSuccessNotification" x-bind:message="successMessage"
+            @close="showSuccessNotification = false" />
+
+        <!-- Claim Modal -->
+        <x-modal x-show="showClaimModal" @close="stopScanner(); showClaimModal = false" title="掃描認領設備"
+            subtitle="Scan to Claim Device" size="md">
+            <div class="space-y-4">
+                <!-- 相機掃描區 -->
+                <div x-show="scannerActive" class="relative bg-black rounded-lg overflow-hidden" style="aspect-ratio: 4/3;">
+                    <video x-ref="scannerVideo" class="w-full h-full object-cover" playsinline muted></video>
+                    <canvas x-ref="scannerCanvas" class="hidden"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="w-48 h-48 border-2 border-sky-400 rounded-lg opacity-70"></div>
+                    </div>
+                </div>
+
+                <!-- 掃描按鈕 -->
+                <div x-show="!scannerActive" class="flex justify-center">
+                    <button @click="startScanner()"
+                        class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-lg transition-all text-sm border border-slate-200 dark:border-slate-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        開啟相機掃描
+                    </button>
+                </div>
+                <div x-show="scannerActive" class="flex justify-center">
+                    <button @click="stopScanner()"
+                        class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline">
+                        停止掃描
+                    </button>
+                </div>
+
+                <!-- 手動輸入 -->
+                <div>
+                    <label class="block text-sm font-bold text-slate-900 dark:text-white mb-1">或手動輸入 Chip ID</label>
+                    <input type="text" x-model="claimChipId" placeholder="例：aabbccddeeff"
+                        class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-sm font-mono">
+                    <p x-show="claimErrors.chip_id" x-text="claimErrors.chip_id" class="mt-1 text-xs text-red-500"></p>
+                </div>
+
+                <!-- 操作按鈕 -->
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="stopScanner(); showClaimModal = false"
+                        class="px-4 py-2 bg-slate-200 dark:bg-slate-800/50 hover:bg-slate-300 dark:hover:bg-slate-700/50 text-slate-900 dark:text-white font-bold rounded-lg transition-all border border-slate-300 dark:border-white/5 text-sm">
+                        取消
+                    </button>
+                    <button type="button" @click="claimDevice()" :disabled="claimLoading || !claimChipId"
+                        class="px-4 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-all text-sm">
+                        <span x-show="!claimLoading">認領</span>
+                        <span x-show="claimLoading">認領中...</span>
+                    </button>
+                </div>
+            </div>
+        </x-modal>
+
+        <!-- Setup Device Modal -->
+        <x-modal x-show="showSetupModal" @close="showSetupModal = false" title="完成設備設置" subtitle="Complete Device Setup"
+            size="lg">
+            <template x-if="selectedDevice">
+                <form @submit.prevent="completeSetup" class="space-y-4 sm:space-y-6">
+                    <!-- Chip ID (Read-only) -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Chip ID</label>
+                        <div
+                            class="px-3 py-2.5 bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-600 dark:text-slate-400 text-base">
+                            <span x-text="selectedDevice.chip_id"></span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Parameter Presets -->
+                    <template x-if="parameterTemplates.filter(t => t.is_system_default).length > 0">
+                        <div class="bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 rounded-lg p-3">
+                            <p class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">快速套用預設參數</p>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="template in parameterTemplates.filter(t => t.is_system_default)"
+                                    :key="template.id">
+                                    <button type="button" @click="applyTemplate(template)"
+                                        class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-500 rounded-lg text-sm font-bold text-slate-900 dark:text-white transition-all"
+                                        x-text="template.name">
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Basic Info -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2">
+                            <x-form-field label="設備名稱" model="setupForm.name" error="setupErrors.name" required />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                設備類型 <span class="text-red-600 dark:text-red-400">*</span>
+                            </label>
+                            <select x-model="setupForm.type_id"
+                                class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-base"
+                                required>
+                                <option value="">選擇類型</option>
+                                <template x-for="type in deviceTypes" :key="type.id">
+                                    <option :value="type.id" x-text="type.name"></option>
+                                </template>
+                            </select>
+                            <template x-if="setupErrors.type">
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400 font-medium"
+                                    x-text="setupErrors.type"></p>
+                            </template>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                所屬場地 <span class="text-red-600 dark:text-red-400">*</span>
+                            </label>
+                            <select x-model="setupForm.venue_id"
+                                class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-base"
+                                required>
+                                <option value="">選擇場地</option>
+                                <template x-for="venue in venues" :key="venue.id">
+                                    <option :value="venue.id" x-text="venue.name"></option>
+                                </template>
+                            </select>
+                            <template x-if="setupErrors.venue_id">
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400 font-medium"
+                                    x-text="setupErrors.venue_id"></p>
+                            </template>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                經營模式 <span class="text-red-600 dark:text-red-400">*</span>
+                            </label>
+                            <select x-model="setupForm.placement_type"
+                                class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-base"
+                                required>
+                                <option value="">選擇模式</option>
+                                <template x-for="model in businessModels" :key="model.value">
+                                    <option :value="model.value" x-text="model.label"></option>
+                                </template>
+                            </select>
+                            <template x-if="setupErrors.placement_type">
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400 font-medium"
+                                    x-text="setupErrors.placement_type"></p>
+                            </template>
+                        </div>
+
+                        <!-- Admin: 指定擁有者 -->
+                        <template x-if="userRole === 'admin'">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                    設備擁有者（Admin）
+                                </label>
+                                <select x-model="setupForm.owner_id"
+                                    class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-base">
+                                    <option value="">不變更擁有者</option>
+                                    <template x-for="owner in owners" :key="owner.id">
+                                        <option :value="owner.id" x-text="owner.name + ' (' + owner.email + ')'"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- V2 Parameters Section -->
+                    <div
+                        class="border-2 border-sky-100 dark:border-sky-900/30 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/20">
+                        <h4
+                            class="text-base font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight flex items-center gap-2">
+                            <span class="w-1.5 h-4 bg-sky-500 rounded-full"></span>
+                            機台參數設定 (V2 Schema)
+                        </h4>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <!-- pulse_to_display -->
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                    計數器跳 1 次的分數 (Pulse Ratio) <span class="text-red-600 dark:text-red-400">*</span>
+                                </label>
+                                <input type="number" x-model.number="setupForm.pulse_to_display" min="1" max="10000"
+                                    class="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all text-base"
+                                    required>
+                                <template x-if="setupErrors.pulse_to_display">
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400"
+                                        x-text="setupErrors.pulse_to_display"></p>
+                                </template>
+                            </div>
+
+                            <!-- pulse_to_token -->
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                    1 脈衝的代幣價格 (Token Cost) <span class="text-red-600 dark:text-red-400">*</span>
+                                </label>
+                                <input type="number" x-model.number="setupForm.pulse_to_token" min="0.01" step="0.01"
+                                    class="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all text-base"
+                                    required>
+                                <template x-if="setupErrors.pulse_to_token">
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400"
+                                        x-text="setupErrors.pulse_to_token"></p>
+                                </template>
+                            </div>
+
+                            <!-- ticket_mode -->
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                    出金模式 (ticket_mode) <span class="text-red-600 dark:text-red-400">*</span>
+                                </label>
+                                <select x-model="setupForm.ticket_mode"
+                                    class="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all text-base"
+                                    required>
+                                    <option value="virtual_ticket">虛擬彩票 (Virtual)</option>
+                                    <option value="physical_ticket">實體彩票 (Physical)</option>
+                                    <option value="direct_prize">直出獎品 (Direct Prize)</option>
+                                </select>
+                            </div>
+
+                            <!-- Dynamic fields -->
+                            <template
+                                x-if="setupForm.ticket_mode === 'virtual_ticket' || setupForm.ticket_mode === 'physical_ticket'">
+                                <div class="contents">
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            1 洗分脈衝 = 幾張彩票 (洗分比例)
+                                        </label>
+                                        <input type="number" x-model.number="setupForm.out_pulse_to_ticket"
+                                            class="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all text-base"
+                                            required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            1 張彩票價值 (元)
+                                        </label>
+                                        <input type="number" x-model.number="setupForm.ticket_value"
+                                            class="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all text-base"
+                                            required>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Credit Options -->
+                        <div
+                            class="p-4 bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 shadow-inner">
+                            <h5 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">
+                                開分選項設定 (Credit Options)</h5>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                        開分選項 (逗號分隔)
+                                    </label>
+                                    <input type="text" x-model="setupForm.credit_options" placeholder="100,200,500,1000"
+                                        class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                        預設開分值
+                                    </label>
+                                    <input type="number" x-model.number="setupForm.credit_default"
+                                        class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Parameter Preview -->
+                        <div
+                            class="mt-4 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-950/50 px-3 py-2 rounded-lg">
+                            <div class="flex items-center gap-4">
+                                <span>1 脈衝 = <span class="text-slate-900 dark:text-white font-bold"
+                                        x-text="calculatePreview().pointsPerPulse"></span> 分</span>
+                                <span class="w-px h-3 bg-slate-300 dark:bg-slate-700"></span>
+                                <span>1 脈衝 = <span class="text-slate-900 dark:text-white font-bold"
+                                        x-text="calculatePreview().tokensPerPulse"></span> 幣</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                        <!-- General error -->
+                        <template x-if="setupErrors.general">
+                            <p class="flex-1 text-sm text-red-600 dark:text-red-400 font-medium"
+                                x-text="setupErrors.general"></p>
+                        </template>
+                        <button type="button" @click="showSetupModal = false" :disabled="setupLoading"
+                            class="px-4 py-2.5 bg-slate-200 dark:bg-slate-800/50 hover:bg-slate-300 dark:hover:bg-slate-700/50 text-slate-900 dark:text-white font-bold rounded-lg transition-all border border-slate-300 dark:border-white/5 text-base disabled:opacity-50 disabled:cursor-not-allowed">
+                            取消
+                        </button>
+                        <button type="submit" :disabled="setupLoading"
+                            class="px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-lg transition-all shadow-lg shadow-sky-500/20 text-base disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
+                            <svg x-show="setupLoading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                                </circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span x-text="setupLoading ? '處理中...' : '完成設置'"></span>
+                        </button>
+                    </div>
+                </form>
+            </template>
+        </x-modal>
+
+        <!-- Device Detail/Edit Modal -->
+        <x-modal x-show="showDeviceModal" @close="showDeviceModal = false" title="設備詳情" subtitle="Device Details" size="lg">
+            <x-slot:footer>
+                <div x-show="showDeviceModal" class="flex items-center justify-end gap-2 sm:gap-3">
+                    <button type="button" @click="showDeviceModal = false"
+                        class="px-4 sm:px-6 py-2 sm:py-2.5 bg-slate-200 dark:bg-slate-800/50 hover:bg-slate-300 dark:hover:bg-slate-700/50 text-slate-900 dark:text-white font-bold rounded-lg transition-all border border-slate-300 dark:border-white/5 text-base">
+                        關閉
+                    </button>
+                    <button type="button" @click="$refs.deviceEditForm.requestSubmit()"
+                        :disabled="showLoadingOverlay"
+                        class="px-4 sm:px-6 py-2 sm:py-2.5 bg-sky-500 hover:bg-sky-400 disabled:bg-sky-400/50 text-white font-bold rounded-lg transition-all shadow-lg shadow-sky-500/20 text-base flex items-center gap-2">
+                        <template x-if="showLoadingOverlay">
+                            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </template>
+                        <span x-text="showLoadingOverlay ? '處理中...' : '保存變更'"></span>
+                    </button>
+                </div>
+            </x-slot:footer>
+            <template x-if="selectedDevice">
+                <div class="flex flex-col h-full">
+                    <!-- Persistent Header: Information Bar -->
+                    <div class="px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                        <!-- Info Section -->
+                        <div class="flex flex-wrap items-center gap-x-6 gap-y-1">
+                            <div class="flex items-center gap-2">
+                                <template x-if="userRole === 'admin'">
+                                    <img :src="qrUrls[selectedDevice.chip_id] || ''" :alt="selectedDevice.chip_id"
+                                        @click="expandedQr = selectedDevice.chip_id"
+                                        class="w-6 h-6 rounded cursor-pointer border border-slate-200 dark:border-slate-700 bg-white">
+                                </template>
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                                    <span class="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Chip ID</span>
+                                    <span class="text-lg font-black text-slate-950 dark:text-white bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded" x-text="selectedDevice.chip_id"></span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                                <span class="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">今日收入</span>
+                                <span class="text-2xl font-black text-sky-600" x-text="(selectedDevice.today_revenue || 0) + ' 元'"></span>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                                <span class="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">最後上線</span>
+                                <span class="text-lg font-black text-slate-900 dark:text-slate-200" x-text="formatDateTime(selectedDevice.last_seen_at)"></span>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                                <span class="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">固件</span>
+                                <span class="text-lg font-black text-slate-900 dark:text-slate-200" x-text="selectedDevice.firmware_ver || '-'"></span>
+                            </div>
+                        </div>
+
+                        <!-- Polarity Section -->
+                        <div class="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-4 h-8">
+                            <div class="hidden sm:flex flex-col text-right mr-1">
+                                <span class="text-[10px] font-black text-indigo-600 uppercase tracking-tight">極性設定</span>
+                                <span class="text-[9px] text-indigo-500/70">訊號偵測</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <button type="button" @click="setPolarity(selectedDevice.id, 'active_high')" :disabled="!selectedDevice.is_online" 
+                                    class="px-2 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded text-[10px] font-black transition-all border border-indigo-300">
+                                    HIGH
+                                </button>
+                                <button type="button" @click="setPolarity(selectedDevice.id, 'active_low')" :disabled="!selectedDevice.is_online" 
+                                    class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-black transition-all border border-slate-300">
+                                    LOW
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- OTA Section -->
+                        <div class="flex items-center gap-4 border-l border-slate-200 dark:border-slate-700 pl-4 h-8">
+                            <div class="hidden sm:flex flex-col text-right">
+                                <span class="text-[10px] font-black text-amber-600 uppercase tracking-tight">韌體 OTA</span>
+                                <span class="text-[9px] text-amber-500/70" x-text="otaStatus ? otaMessage : '隨時保持最新版本'"></span>
+                            </div>
+                            <template x-if="canTriggerOta()">
+                                <button type="button" @click="triggerOta(selectedDevice.id)" :disabled="otaLoading || !selectedDevice.is_online" 
+                                    class="px-3 py-1 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-200 text-white rounded text-[10px] font-bold transition-all shadow-sm">
+                                    <span x-text="otaLoading ? '發送中' : '立即更新'"></span>
+                                </button>
+                            </template>
+                            <template x-if="!canTriggerOta()">
+                                <a :href="'{{ route('subscriptions.plans') }}'" class="px-3 py-1 bg-sky-500 hover:bg-sky-400 text-white rounded text-[10px] font-bold transition-all shadow-sm">解鎖 PRO</a>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Tab Navigation (4 Tabs) -->
+                    <div class="flex items-center gap-1 px-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 pt-3">
+                        <button type="button" @click="activeTab = 'config'" 
+                            class="px-6 py-4 text-base font-black transition-all rounded-t-2xl border-t border-l border-r whitespace-nowrap"
+                            :class="activeTab === 'config' ? 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-sky-700 dark:text-sky-400 -mb-px' : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'">
+                            參數設定
+                        </button>
+                        <button type="button" @click="activeTab = 'credit'" 
+                            class="px-6 py-4 text-base font-black transition-all rounded-t-2xl border-t border-l border-r whitespace-nowrap"
+                            :class="activeTab === 'credit' ? 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-sky-700 dark:text-sky-400 -mb-px' : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'">
+                            開分選項
+                        </button>
+                        <button type="button" @click="activeTab = 'system'" 
+                            class="px-6 py-4 text-base font-black transition-all rounded-t-2xl border-t border-l border-r whitespace-nowrap"
+                            :class="activeTab === 'system' ? 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-sky-700 dark:text-sky-400 -mb-px' : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'">
+                            系統分類
+                        </button>
+                        <button type="button" @click="activeTab = 'sharing'" 
+                            class="px-6 py-4 text-base font-black transition-all rounded-t-2xl border-t border-l border-r whitespace-nowrap"
+                            :class="activeTab === 'sharing' ? 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-sky-700 dark:text-sky-400 -mb-px' : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'">
+                            分潤管理
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="saveDevice" x-ref="deviceEditForm" class="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-slate-800/30">
+
+
+                        <!-- Tab 3: Sharing (Profit Sharing) -->
+                        <div x-show="activeTab === 'sharing'" x-transition class="space-y-6">
+                            <div class="bg-white dark:bg-slate-900 border-2 border-sky-200 dark:border-sky-900 rounded-2xl p-6 shadow-sm">
+                                <div class="flex items-center justify-between mb-6 border-b border-sky-50 dark:border-sky-900/30 pb-3">
+                                    <h4 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                                        分潤信息
+                                        <template x-if="selectedDevice && selectedDevice.has_pending_proposal"><span class="text-amber-500 animate-pulse text-2xl">*</span></template>
+                                        <template x-if="detailsLoading"><svg class="animate-spin h-5 w-5 text-sky-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></template>
+                                    </h4>
+                                    <button type="button" @click="openProfitSharingModal()" x-show="!pendingProposal && canModifyProfitSharing() && !detailsLoading" class="px-5 py-2 bg-sky-500 hover:bg-sky-400 text-white font-black rounded-xl text-sm transition-all shadow-lg shadow-sky-500/20">修改分潤</button>
+                                </div>
+                                <div class="grid grid-cols-2 gap-6 mb-6">
+                                    <div><label class="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase mb-1.5">機台擁有者</label><p class="text-lg font-bold text-slate-900 dark:text-white" x-text="selectedDevice.owner ? selectedDevice.owner.name : '-'"></p></div>
+                                    <div><label class="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase mb-1.5">場地擁有者</label><p class="text-lg font-bold text-slate-900 dark:text-white" x-text="selectedDevice.venue && selectedDevice.venue.owner ? selectedDevice.venue.owner.name : '-'"></p></div>
+                                </div>
+                                <div class="mb-6">
+                                    <label class="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase mb-3">當前分潤比例</label>
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
+                                            <p class="text-xs font-bold text-slate-500 mb-1">機台</p>
+                                            <p class="text-3xl font-black text-sky-600" x-text="selectedDevice.share_device_owner + '%'"></p>
+                                        </div>
+                                        <div class="text-slate-300 text-2xl font-black">/</div>
+                                        <div class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
+                                            <p class="text-xs font-bold text-slate-500 mb-1">場地</p>
+                                            <p class="text-3xl font-black text-emerald-600" x-text="selectedDevice.share_venue_owner + '%'"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <template x-if="pendingProposal">
+                                    <div class="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-2xl p-4">
+                                        <div class="flex items-start gap-3">
+                                            <svg class="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-black text-amber-800 dark:text-amber-300 mb-1">待審批提案</p>
+                                                <p class="text-sm text-amber-700 dark:text-amber-400 mb-4"><span x-text="pendingProposal.proposer.name" class="font-bold"></span> 提議修改為：機台 <span class="font-black" x-text="pendingProposal.share_device_owner + '%'"></span> / 場地 <span class="font-black" x-text="pendingProposal.share_venue_owner + '%'"></span></p>
+                                                <div class="flex gap-3">
+                                                    <template x-if="isApprover()">
+                                                        <div class="contents">
+                                                            <button type="button" @click="approveProposal(pendingProposal.id)" class="flex-1 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-black shadow-lg shadow-emerald-500/20">同意變更</button>
+                                                            <button type="button" @click="rejectProposal(pendingProposal.id)" class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl text-sm font-black shadow-lg shadow-red-500/20">拒絕</button>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="isProposer()">
+                                                        <button type="button" @click="cancelProposal(pendingProposal.id)" class="flex-1 px-4 py-2.5 bg-slate-500 text-white rounded-xl text-sm font-black shadow-lg shadow-slate-500/20">撤銷提案</button>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Tab 4: Config (Core Parameters) -->
+                        <div x-show="activeTab === 'config'" x-transition class="space-y-8">
+                            <div class="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-3xl p-8 shadow-md">
+                                <h4 class="text-xl font-black text-slate-950 dark:text-white mb-8 border-b-2 border-slate-100 dark:border-slate-800 pb-4">核心參數設定</h4>
+                                <div class="grid grid-cols-1 gap-8">
+                                    <x-form-field label="設備名稱" model="editForm.name" error="editErrors.name" required class="text-xl font-black" />
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                        <div>
+                                            <label class="block text-base font-black text-slate-800 dark:text-slate-200 mb-3">1 脈衝幾分 (pulse_to_display)</label>
+                                            <input type="number" x-model.number="editForm.pulse_to_display" min="1" 
+                                                class="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 rounded-2xl text-xl font-black text-slate-950 dark:text-white focus:ring-4 focus:ring-sky-500/20 outline-none transition-all" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-base font-black text-slate-800 dark:text-slate-200 mb-3">1 脈衝扣幾幣 (pulse_to_token)</label>
+                                            <input type="number" x-model.number="editForm.pulse_to_token" min="0.01" step="0.01" 
+                                                class="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 rounded-2xl text-xl font-black text-slate-950 dark:text-white focus:ring-4 focus:ring-sky-500/20 outline-none transition-all" required>
+                                        </div>
+                                        <div class="col-span-1 sm:col-span-2">
+                                            <label class="block text-base font-black text-slate-800 dark:text-slate-200 mb-3">出金模式 (ticket_mode)</label>
+                                            <select x-model="editForm.ticket_mode" 
+                                                class="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 rounded-2xl text-xl font-black text-slate-950 dark:text-white focus:ring-4 focus:ring-sky-500/20 outline-none transition-all" required>
+                                                <option value="virtual_ticket">虛擬彩票 (Virtual)</option>
+                                                <option value="physical_ticket">實體彩票 (Physical)</option>
+                                                <option value="direct_prize">直出獎品 (Direct Prize)</option>
+                                            </select>
+                                        </div>
+                                        <template x-if="editForm.ticket_mode !== 'direct_prize'">
+                                            <div class="col-span-1 sm:col-span-2 grid grid-cols-2 gap-8 bg-sky-50/50 dark:bg-sky-900/10 p-6 rounded-3xl border-2 border-sky-100 dark:border-sky-900/30">
+                                                <div>
+                                                    <label class="block text-base font-black text-sky-900 dark:text-sky-300 mb-3">1 脈衝 = 幾張票</label>
+                                                    <input type="number" x-model.number="editForm.out_pulse_to_ticket" 
+                                                        class="w-full px-5 py-4 bg-white dark:bg-slate-950 border-2 border-sky-200 dark:border-sky-800 rounded-2xl text-xl font-black text-slate-950 dark:text-white">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-base font-black text-sky-900 dark:text-sky-300 mb-3">1 張票價值 (元)</label>
+                                                    <input type="number" x-model.number="editForm.ticket_value" 
+                                                        class="w-full px-5 py-4 bg-white dark:bg-slate-950 border-2 border-sky-200 dark:border-sky-800 rounded-2xl text-xl font-black text-slate-950 dark:text-white">
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 5: Credit (Options) -->
+                        <div x-show="activeTab === 'credit'" x-transition class="space-y-6">
+                            <div class="bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                                <h6 class="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    開分選項設定
+                                </h6>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                    <div>
+                                        <label class="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2.5 uppercase tracking-wide">開分選項 (逗號分隔)</label>
+                                        <input type="text" x-model="editForm.credit_options"
+                                            class="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-sky-500 rounded-xl text-slate-900 dark:text-white font-black text-lg outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600" placeholder="100,200,500">
+                                        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 font-bold">例如：100, 500, 1000</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2.5 uppercase tracking-wide">預設開分值</label>
+                                        <input type="number" x-model.number="editForm.credit_default"
+                                            class="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-sky-500 rounded-xl text-slate-900 dark:text-white font-black text-xl outline-none transition-all">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 6: System (Categorization) -->
+                        <div x-show="activeTab === 'system'" x-transition class="space-y-6">
+                            <div class="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                                <h4 class="text-lg font-black text-slate-900 dark:text-white mb-6 border-b border-slate-100 dark:border-slate-800 pb-3">系統分類與歸屬</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2">設備類型</label>
+                                        <select x-model="editForm.type_id" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-base font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-sky-500/50 transition-all">
+                                            <option :value="null">未分類</option>
+                                            <template x-for="type in deviceTypes" :key="type.id">
+                                                <option :value="type.id" x-text="type.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2">設備狀態</label>
+                                        <select x-model="editForm.status" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-base font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-sky-500/50 transition-all" required>
+                                            <option value="">選擇狀態</option>
+                                            <template x-for="status in deviceStatuses" :key="status.value">
+                                                <option :value="status.value" x-text="status.label"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2">所屬場地</label>
+                                        <select x-model="editForm.venue_id" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-base font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-sky-500/50 transition-all">
+                                            <option value="">未分配</option>
+                                            <template x-for="venue in venues" :key="venue.id">
+                                                <option :value="venue.id" x-text="venue.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2">經營模式</label>
+                                        <select x-model="editForm.placement_type" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-base font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-sky-500/50 transition-all" required>
+                                            <option value="">選擇模式</option>
+                                            <template x-for="model in businessModels" :key="model.value">
+                                                <option :value="model.value" x-text="model.label"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <template x-if="userRole === 'admin'">
+                                        <div class="col-span-1 sm:col-span-2">
+                                            <label class="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2">設備擁有者（Admin）</label>
+                                            <select x-model="editForm.owner_id" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-base font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-sky-500/50 transition-all">
+                                                <option value="">不變更</option>
+                                                <template x-for="owner in owners" :key="owner.id">
+                                                    <option :value="owner.id" x-text="owner.name"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </template>
+        </x-modal>
+
+        <!-- Profit Sharing Modal -->
+        <x-modal x-show="showProfitSharingModal" @close="showProfitSharingModal = false" title="修改分潤比例"
+            subtitle="Modify Profit Sharing" size="md">
+            <form @submit.prevent="submitProfitSharingProposal" class="space-y-4 sm:space-y-6">
+                <!-- Info Alert -->
+                <div
+                    class="bg-sky-50 dark:bg-sky-900/20 border-2 border-sky-300 dark:border-sky-800 rounded-lg p-3 shadow-sm">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-sky-600 dark:text-sky-400 flex-shrink-0 mt-0.5" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="text-xs text-sky-700 dark:text-sky-300">
+                                修改分潤比例需要對方確認才能生效。提案有效期為 7 天。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profit Sharing Input (Single Slider) -->
+                <div class="space-y-6">
+                    <!-- Percentage Display -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-sky-50 dark:bg-sky-900/20 border-2 border-sky-300 dark:border-sky-800 rounded-2xl p-4 shadow-sm text-center">
+                            <div class="text-xs font-black text-sky-700 dark:text-sky-300 mb-1 uppercase">機台分成</div>
+                            <div class="text-3xl font-black text-sky-600 dark:text-sky-400"
+                                x-text="profitSharingForm.share_device_owner + '%'"></div>
+                        </div>
+                        <div class="bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-300 dark:border-emerald-800 rounded-2xl p-4 shadow-sm text-center">
+                            <div class="text-xs font-black text-emerald-700 dark:text-emerald-300 mb-1 uppercase">場地分成</div>
+                            <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400"
+                                x-text="profitSharingForm.share_venue_owner + '%'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Single Slider -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
+                                調整分潤比例 <span class="text-red-600 dark:text-red-400">*</span>
+                            </label>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">拖動調整機台分成</span>
+                        </div>
+                        <input type="range" x-model="profitSharingForm.share_device_owner" min="0" max="100" step="5"
+                            @input="profitSharingForm.share_venue_owner = 100 - profitSharingForm.share_device_owner"
+                            class="w-full h-3 bg-gradient-to-r from-sky-500 to-emerald-500 rounded-lg appearance-none cursor-pointer slider-thumb">
+                        <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            <span>0%</span>
+                            <span>25%</span>
+                            <span>50%</span>
+                            <span>75%</span>
+                            <span>100%</span>
+                        </div>
+                        <div class="flex justify-between text-2xs text-slate-400 dark:text-slate-500 mt-0.5">
+                            <span>← 場地 100%</span>
+                            <span>機台 100% →</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reason (Optional) -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 sm:mb-2">
+                        修改原因 (可選)
+                    </label>
+                    <textarea x-model="profitSharingForm.reason" rows="3" placeholder="說明修改分潤比例的原因..."
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all text-sm resize-none"></textarea>
+                    <template x-if="profitSharingErrors.reason">
+                        <p class="mt-1 text-xs text-red-600 dark:text-red-400 font-medium"
+                            x-text="profitSharingErrors.reason"></p>
+                    </template>
+                </div>
+
+                <div
+                    class="flex items-center justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="showProfitSharingModal = false"
+                        class="px-4 sm:px-6 py-2 sm:py-2.5 bg-slate-200 dark:bg-slate-800/50 hover:bg-slate-300 dark:hover:bg-slate-700/50 text-slate-900 dark:text-white font-bold rounded-lg transition-all border border-slate-300 dark:border-white/5 text-sm">
+                        取消
+                    </button>
+                    <button type="submit" :disabled="!validateProfitSharing()"
+                        :class="validateProfitSharing() ? 'bg-sky-500 hover:bg-sky-400 shadow-lg shadow-sky-500/20' : 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed'"
+                        class="px-4 sm:px-6 py-2 sm:py-2.5 text-white font-bold rounded-lg transition-all text-sm">
+                        提交提案
+                    </button>
+                </div>
+            </form>
+        </x-modal>
+
+        <!-- Version Indicator -->
+        <div class="mt-8 mb-4 text-center">
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+                &copy; {{ date('Y') }} TG25 IoT Platform. v2.0.1 (Build {{ date('md.Hi') }})
+            </p>
+        </div>
+    </div>
+@endsection

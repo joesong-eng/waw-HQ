@@ -47,7 +47,7 @@ curl http://localhost:8899/status
 ### 2. 任務發布功能正常
 ```bash
 ./scripts/hq_send_task_via_hub.sh sophie TEST_1780841672 "測試任務" normal
-# ✅ 任務已寫入 _agent/outbox/to_sophie.json
+# ✅ 任務已寫入 .taskbox/outbox/to_sophie.json
 ```
 
 ### 3. Agent 查詢功能正常
@@ -110,7 +110,7 @@ HQ Message Hub v2.0 (localhost:8899)
    │
    ├─→ HTTP API ─→ Agent 查詢任務
    ├─→ Redis Pub/Sub (預留即時推送)
-   └─→ 檔案系統 (_agent/outbox/)
+   └─→ 檔案系統 (.taskbox/outbox/)
           │
           │ Agent 自動檢查
           ↓

@@ -11,7 +11,7 @@ ssh_servers:
     note: "Oracle 2G/16M alliance host"
     
   yd47:
-    hostname: 129.146.0.47
+    hostname: 129.146.103.177
     port: 39022
     user: ubuntu
     key: ~/.ssh/id_rsa
@@ -236,7 +236,7 @@ project_paths:
 
 deployment_commands:
   member:
-    ssh: "ssh -p 39022 ubuntu@129.146.0.47"
+    ssh: "ssh -p 39022 ubuntu@129.146.103.177"
     deploy: |
       cd /www/wwwroot/win.tg25.win
       git pull origin main
@@ -268,7 +268,7 @@ deployment_commands:
       php artisan cache:clear
       
   ihub:
-    ssh: "ssh -p 39022 ubuntu@129.146.0.47"
+    ssh: "ssh -p 39022 ubuntu@129.146.103.177"
     deploy: |
       cd /www/wwwroot/ihub.tg25.win
       git pull origin main

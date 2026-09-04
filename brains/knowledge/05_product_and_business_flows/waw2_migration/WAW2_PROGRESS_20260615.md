@@ -183,4 +183,4 @@ Cron Job    ░░░░░░░░░░░░░░░░░░░░   0%
 - ← [資料庫 Schema 標準](../../../02_technical_standards/DB_SCHEMA_WAW2_DELTA.md)
 - ← [Sophie 路由驗證報告](file:///Users/ilawusong/Documents/sysWawIot/waw-core/_agent/REPORT_20260615_001702_CONS_20260615_001.md)
 - ← [Ina 連線測試報告](file:///Users/ilawusong/Documents/sysWawIot/tg25-infra/_agent/REPORT_20260615_001706_CONS_20260615_002.md)
-- ← [Sophie 欠款邏輯分析](file:///Users/ilawusong/Documents/sysWawIot/HQ/_agent/inbox/20260615_091152_sophie_auto.json)
+- ← [Sophie 欠款邏輯分析](file:///Users/ilawusong/Documents/sysWawIot/HQ/.taskbox/inbox/20260615_091152_sophie_auto.json)

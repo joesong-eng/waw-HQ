@@ -1,7 +1,7 @@
 # 技術命名與數據負載標準規範 (Technical Naming & Payload Standard)
 
-> **版本**：v3.0.0 (合併版)  
-> **最後更新**：2026-06-05  
+> **版本**：v3.1.0 (合併版)  
+> **最後更新**：2026-08-03  
 > **狀態**：🔴 **最高物理法典** - 全系統所有 Agent 必須完全遵守此規範，禁止私自創立替代變數或修改格式。  
 > **適用範圍**：Firmware (Fio, Coli)、Infra (Ina)、Member (Mina)、Owner (Sophie)
 
@@ -21,6 +21,21 @@
   - ❌ 禁用：`kiosk_id`、`deviceId`、`nodeId`。
   - ⚠️ API 參數別名：僅在 API 參數傳遞時，允許 `kiosk_id` 做為 `node_id` 的別名。
 * **使用者與營運商 ID**：統一使用 `owner_id` 或 `user_id` (對應 `users.id`)。
+
+### 3. Phase 1 術語與命名統一規範 (場地、設備、機主)
+依據 HQ 2026-08-03 決議，為解耦 `store` 與 `venue`、`device` 與 `machine`，在 Phase 1 期間執行以下統一命名：
+* **場地 (Venue)**：一律命名為 `venue` 與 `venue_id`。所有 API、Payload、DB 欄位禁止使用 `store` 或 `store_id`。
+  - 對應資料表：`iotv9.venues`。
+  - 外鍵：`venue_id`。
+  - 營運分成：場地所有者為 `venue_owner_id`，分成比例為 `venue_owner_share`，分成金額為 `venue_owner_share_amount`。
+* **設備 (Device)**：Phase 1 期間（`machines` 表尚未就緒前）一律命名為 `device` 與 `device_id`。
+  - 對應資料表：`iotv9.devices`。
+  - 關聯表（部署與分成流水）：`device_deployments` 及 `device_transactions`（取代 `machine_deployments` 與 `machine_transactions`）。
+  - 外鍵：`device_id`（取代 `machine_id`）。
+  - 分成：設備所有者分成比例為 `owner_share`，分成金額為 `owner_share_amount`。
+  - **Phase 2 展望**：待大遷移 `machines` 表就緒後，此部分才會統一遷移至 `machine` / `machine_id` 規範。
+* **機主 (Owner)**：設備所有者（機主）在設備上下文下一律為 `owner_id`（取代 `device_owner_id` 或 `machine_owner_id`）。
+  - 在 `device_transactions` 表中，場地主與機主同時存在時，分別表示為 `venue_owner_id` 與 `owner_id`。
 * **交易 ID**：統一使用 `transaction_id` (格式為 UUIDv4 或是由系統生成的交易序號)。
 
 ### 2. 帳務、脈衝與指令命名

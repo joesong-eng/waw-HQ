@@ -1,0 +1,8 @@
+{
+  "from_agent": "ina",
+  "task_id": "REPORT_TASK_20260805_INFRA_REGULARIZE_COMMAND_LOGS",
+  "consult_id": null,
+  "timestamp": "2026-08-05T02:28:40Z",
+  "report_file": "_agent/REPORT_TASK_20260805_INFRA_REGULARIZE_COMMAND_LOGS.md",
+  "report": "# 任務回報：TASK_20260805_INFRA_REGULARIZE_COMMAND_LOGS\n\n## 治理摘要\n已完成 Sophie 在 Owner 中使用的 `device_command_logs` 資料庫表結構審計與治理：\n1. **外鍵約束重構**：移除了實體外鍵 `device_command_logs_ibfk_1` (對 `devices`) 與 `device_command_logs_ibfk_2` (對 `users`)，全面轉為邏輯外鍵（Application-level），避免在 `devices` 或 `users` 被刪除時導致審計日誌遭到物理級 `CASCADE` 級聯刪除。\n2. **重複索引優化**：移除了重複的輔助索引 `transaction_id_2`，僅保留 `transaction_id` 的 `UNIQUE KEY`。\n3. **規範文件更新**：更新了 `DB_MANIFEST.md` 以及 `_agent/DB_MANIFEST.md`，已將 `device_command_logs` 完整寫入現有資料庫表結構索引中，並同步了最後更新時間。\n4. **部署同步**：已透過 `./deploy/deploy_vps.sh` 完成 VPS 部署與代碼同步。\n"
+}

@@ -6,8 +6,8 @@
 set -e
 
 HQ_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-OUTBOX="${HQ_DIR}/_agent/outbox"
-INBOX="${HQ_DIR}/_agent/inbox"
+OUTBOX="${HQ_DIR}/.taskbox/outbox"
+INBOX="${HQ_DIR}/.taskbox/inbox"
 TASK_LOG="${HQ_DIR}/_agent/task_flow.log"
 WATCHDOG_SCRIPT="${HQ_DIR}/scripts/hq_watchdog.sh"
 

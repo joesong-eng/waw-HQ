@@ -1,0 +1,8 @@
+{
+  "from_agent": "ina",
+  "task_id": "TASK_20260805_INFRA_REVERB_SERVICE",
+  "consult_id": null,
+  "timestamp": "2026-08-05T01:10:53Z",
+  "report_file": "_agent/REPORT_20260805_011000_TASK_20260805_INFRA_REVERB_SERVICE.md",
+  "report": "# 任務回報：TASK_20260805_INFRA_REVERB_SERVICE\n\n## 📋 任務摘要\n在 VPS 上順利安裝與啟動 Laravel Reverb 服務 (Port 6009)，並完成 Nginx WebSocket 反向代理設定。\n\n## ⚙️ 執行步驟與變更\n1. **Laravel Reverb 安裝與設定**\n   - 解決 VPS 上 PHP 8.1 平台版本過舊之 Composer 相容問題，改用 PHP 8.5 進行安裝。\n   - 完成 `laravel/reverb` 安裝並發佈 `reverb.php` 設定檔。\n   - 在 `.env` 中設定 Reverb App Credentials 與端口 `REVERB_SERVER_PORT=6009`。\n2. **服務建立與啟動**\n   - 建立系統服務檔 `/etc/systemd/system/waw-reverb.service`，使用 PHP 8.5 啟動服務。\n   - 啟用並啟動服務，目前服務處於 **active (running)** 狀態並成功監聽 `127.0.0.1:6009`。\n3. **Nginx 反向代理配置**\n   - 修改 `/etc/nginx/sites-available/iot.tg25.win` 設定，加入 `location ~ ^/(app|apps)` 導向 Reverb 服務（Port 6009），並支援 WebSocket 協議之 Upgrade 機制。\n   - 重新載入 Nginx 完成套用。\n\n## 🔍 驗證結果\n- 本地使用 curl 與 WebSocket 協議標頭進行連線測試：\n  `curl -i -N -H \"Upgrade: websocket\" -H \"Connection: Upgrade\" \"http://127.0.0.1/app/wawreverbkey2026?protocol=7&...`\n- 成功獲得 `pusher:connection_established` 握手回應，且帶有 `X-Powered-By: Laravel Reverb` 標頭，證實反向代理與 Reverb 連接皆完全正常。\n"
+}

@@ -2,7 +2,7 @@
 # 查看收件匣摘要
 # 使用方式：./hq_inbox_summary.sh
 
-INBOX_DIR="_agent/inbox"
+INBOX_DIR=".taskbox/inbox"
 
 if [ ! -d "${INBOX_DIR}" ]; then
     echo "📭 收件匣為空"

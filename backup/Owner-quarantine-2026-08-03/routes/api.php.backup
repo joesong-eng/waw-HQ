@@ -1,0 +1,256 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Models\Device;
+use App\Models\DeviceSnapshot;
+use App\Http\Controllers\Api\V9\RealtimeController;
+use App\Http\Controllers\Api\V9\DeviceController;
+use App\Http\Controllers\Api\V9\DeviceRegistrationController;
+use App\Http\Controllers\Api\V9\ParameterTemplateController;
+use App\Http\Controllers\Api\V9\RevenueController;
+use App\Http\Controllers\Api\V9\ValidationController;
+use App\Http\Controllers\Api\V9\VenueController;
+use App\Http\Controllers\Api\V9\VenueStaffController;
+use App\Http\Controllers\Api\V9\ProfitSharingController;
+use App\Http\Controllers\Api\V9\DeviceTypeController;
+use App\Http\Controllers\Api\V9\NotificationController;
+use App\Http\Controllers\Api\V9\OtaController;
+use App\Http\Controllers\Api\V9\LineBindingController;
+use App\Http\Controllers\Api\V9\SettlementController;
+use App\Http\Controllers\Api\V9\SubscriptionController;
+use App\Http\Controllers\Api\V9\BillingController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\InternalBroadcastController;
+use App\Http\Controllers\Api\InternalDeviceController;
+use App\Http\Controllers\Api\InternalPulseController;
+use App\Http\Controllers\Api\V9\DeviceCommandController;
+use App\Http\Controllers\Api\CreditCallbackController;
+use App\Http\Controllers\Api\Internal\InternalKioskController;
+use App\Http\Controllers\Api\Internal\AffiliateDataController;
+use App\Http\Controllers\Api\V9\DashboardSummaryController;
+use App\Http\Controllers\Api\V9\MachineController;
+use App\Http\Controllers\Api\V9\SystemSettingController;
+
+use App\Http\Controllers\Api\V1\IhubIntegrationController;
+
+Route::prefix('internal/kiosk')->middleware('verify.internal.key')->group(function () {
+    Route::post('/event', [InternalKioskController::class, 'handleEvent']);
+    Route::post('/callback', [InternalKioskController::class, 'handleCallback']);
+});
+
+// iHub Integration API
+Route::prefix('v1')->middleware('verify.ihub.token')->group(function () {
+    Route::post('/audit/report', [IhubIntegrationController::class, 'auditReport']);
+    Route::post('/event/pulse', [IhubIntegrationController::class, 'eventPulse']);
+});
+
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::prefix('v9/radar')->group(function () {
+        Route::get('/devices', [RealtimeController::class, 'getRadarDevices']);
+    });
+});
+
+Route::middleware(['web', 'auth'])->prefix('v9/realtime')->group(function () {
+    Route::get('/devices', [RealtimeController::class, 'getDevices']);
+    Route::get('/devices/{chipId}/commands', [RealtimeController::class, 'getCommandHistory']);
+});
+
+Route::prefix('internal/broadcast')->middleware('verify.internal.key')->group(function () {
+    Route::post('/device-update', [InternalBroadcastController::class, 'deviceUpdate']);
+});
+
+Route::prefix('internal/devices')->middleware('verify.internal.key')->group(function () {
+    Route::post('/register', [InternalDeviceController::class, 'register']);
+});
+
+Route::prefix('internal/device')->middleware('verify.internal.key')->group(function () {
+    Route::get('/{chip_id}/params', [InternalDeviceController::class, 'getParameters']);
+});
+
+// Alias for legacy listener format
+Route::prefix('internal/mqtt')->middleware('verify.internal.key')->group(function () {
+    Route::post('/device-register', [InternalDeviceController::class, 'register']);
+});
+
+Route::prefix('internal/pulse')->middleware('verify.internal.key')->group(function () {
+    Route::post('/credit-in', [InternalPulseController::class, 'creditIn']);
+    Route::post('/credit-out', [InternalPulseController::class, 'creditOut']);
+});
+
+Route::prefix('internal/credit')->middleware('verify.internal.key')->group(function () {
+    Route::post('/callback', [CreditCallbackController::class, 'handle']);
+});
+
+// Affiliate Internal API — 供代理商站查詢業主訂閱資料（影子分潤用）
+Route::prefix('internal/alliance')->middleware('verify.internal.key')->group(function () {
+    Route::get('/owner-subscription', [AffiliateDataController::class, 'ownerSubscription']);
+    Route::get('/owner-subscriptions', [AffiliateDataController::class, 'ownerSubscriptions']);
+});
+
+// Device Management API Routes (authenticated via session)
+Route::middleware(['web', 'auth'])->prefix('v9')->group(function () {
+    // Device online status snapshot (proxies infra Redis, no DB is_online needed)
+    // Device online status snapshot (proxies infra Redis, no DB is_online needed)
+    Route::get('/devices/online-status', [RealtimeController::class, 'getOnlineStatus']);
+
+    // CSRF Token Refresh Endpoint
+    Route::get('/csrf-token', function () {
+        return response()->json([
+            'message' => 'CSRF token retrieved',
+            'data' => [
+                'csrf_token' => csrf_token()
+            ]
+        ]);
+    });
+
+    // Device Type Management
+    Route::get('/device-types', [DeviceTypeController::class, 'index']);
+    Route::post('/device-types', [DeviceTypeController::class, 'store']);
+    Route::delete('/device-types/{deviceType}', [DeviceTypeController::class, 'destroy']);
+
+    // Device Groups (must be before /devices/{device} to avoid route conflict)
+    Route::get('/devices/groups', [DeviceController::class, 'groups']);
+
+    // Device Registration (已廢棄 — 設備現在透過 infra 自動預註冊)
+    Route::post('/devices/registration-token', fn() => response()->json([
+        'message' => '此端點已廢棄，設備現在透過 infra 自動預註冊',
+        'deprecated' => true,
+    ], 410));
+    Route::post('/devices/register', fn() => response()->json([
+        'message' => '此端點已廢棄，設備現在透過 infra 自動預註冊',
+        'deprecated' => true,
+    ], 410));
+
+    // Device Claim
+    Route::post('/devices/claim', [DeviceController::class, 'claim']);
+
+    // Device Management
+    Route::get('/devices', [DeviceController::class, 'index']);
+    Route::get('/devices/{device}', [DeviceController::class, 'show']);
+    Route::put('/devices/{device}', [DeviceController::class, 'update']);
+    Route::put('/devices/{device}/setup', [DeviceController::class, 'completeSetup']);
+    Route::put('/devices/{device}/status', [DeviceController::class, 'updateStatus']);
+    Route::put('/devices/{device}/venue', [DeviceController::class, 'assignVenue']);
+    Route::post('/devices/{device}/parameter-impact', [DeviceController::class, 'analyzeParameterImpact']);
+
+    // Device Commands
+    Route::post('/devices/{device}/assign-credit', [DeviceCommandController::class, 'assignCredit']);
+    Route::post('/devices/{device}/settle-credit', [DeviceCommandController::class, 'settleCredit']);
+    Route::post('/devices/{device}/set-polarity', [DeviceCommandController::class, 'setSignalPolarity']);
+
+    // Device Parameters API
+    Route::get('/devices/{device}/parameters', [DeviceController::class, 'getParameters']);
+    Route::put('/devices/{device}/parameters', [DeviceController::class, 'updateParameters']);
+    Route::post('/devices/{device}/parameters/validate', [DeviceController::class, 'validateParameters']);
+
+    // Parameter Templates
+    Route::get('/parameter-templates', [ParameterTemplateController::class, 'index']);
+    Route::post('/parameter-templates', [ParameterTemplateController::class, 'store']);
+    Route::get('/parameter-templates/{template}', [ParameterTemplateController::class, 'show']);
+    Route::put('/parameter-templates/{template}', [ParameterTemplateController::class, 'update']);
+    Route::delete('/parameter-templates/{template}', [ParameterTemplateController::class, 'destroy']);
+    Route::get('/parameter-templates/type/{type}', [ParameterTemplateController::class, 'getByType']);
+
+    // Revenue Calculation and Audit
+    Route::post('/revenue/calculate', [RevenueController::class, 'calculate']);
+    Route::get('/revenue/audit/{transaction_id}', [RevenueController::class, 'getAudit']);
+
+    // Data Validation
+    Route::post('/validation/consistency-check', [ValidationController::class, 'consistencyCheck']);
+    Route::get('/validation/reports', [ValidationController::class, 'getReports']);
+
+    // Device Command Control (開洗分) — 已移至 /api/v9/machine/ 端點
+
+    // Venue Management
+    Route::get('/venues/stats', [VenueController::class, 'stats']);
+    Route::get('/venues', [VenueController::class, 'index']);
+    Route::post('/venues', [VenueController::class, 'store']);
+    Route::get('/venues/{venue}', [VenueController::class, 'show']);
+    Route::get('/venues/{venue}/summary', [VenueController::class, 'summary']);
+    Route::put('/venues/{venue}', [VenueController::class, 'update']);
+    Route::put('/venues/{venue}/status', [VenueController::class, 'updateStatus']);
+    Route::delete('/venues/{venue}', [VenueController::class, 'destroy']);
+
+    // Venue Staff Management
+    Route::post('/venues/{venue}/staff', [VenueStaffController::class, 'assignStaff']);
+    Route::put('/venues/{venue}/staff/{staff_id}', [VenueStaffController::class, 'updateRole']);
+    Route::delete('/venues/{venue}/staff/{staff_id}', [VenueStaffController::class, 'removeStaff']);
+    Route::get('/venues/{venue}/staff', [VenueStaffController::class, 'listStaff']);
+
+    // Profit Sharing Management
+    Route::get('/profit-sharing/proposals', [ProfitSharingController::class, 'index']);
+    Route::post('/devices/{device}/profit-sharing/propose', [ProfitSharingController::class, 'propose']);
+    Route::post('/profit-sharing/proposals/{proposal}/approve', [ProfitSharingController::class, 'approve']);
+    Route::post('/profit-sharing/proposals/{proposal}/reject', [ProfitSharingController::class, 'reject']);
+    Route::post('/profit-sharing/proposals/{proposal}/cancel', [ProfitSharingController::class, 'cancel']);
+    Route::get('/profit-sharing/proposals/pending', [ProfitSharingController::class, 'pending']);
+    Route::post('/profit-sharing/proposals/batch-approve', [ProfitSharingController::class, 'batchApprove']);
+    Route::post('/profit-sharing/proposals/batch-reject', [ProfitSharingController::class, 'batchReject']);
+
+    // Notification Management
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/logs', [NotificationController::class, 'logs']);
+    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+
+    // LINE Notification Integration
+    Route::post('/line/generate-binding-code', [LineBindingController::class, 'generateBindingCode']);
+    Route::get('/line/status', [LineBindingController::class, 'getStatus']);
+    Route::post('/line/unbind', [LineBindingController::class, 'unbind']);
+
+    // M2 Subscription Management
+    Route::get('/subscription/status', [SubscriptionController::class, 'status']);
+    Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);
+
+    // OTA Firmware Management
+    Route::get('/ota/latest-version', [OtaController::class, 'latestVersion']);
+    Route::post('/devices/{deviceId}/ota/trigger', [OtaController::class, 'trigger']);
+
+    // M8 Billing Management
+    Route::post('/billing/request', [BillingController::class, 'submitRequest']);
+    Route::post('/billing/upload-proof', [BillingController::class, 'uploadProof']);
+    Route::get('/billing/history', [BillingController::class, 'history']);
+    Route::delete('/billing/request/{id}', [BillingController::class, 'cancelRequest']);
+
+    // Dashboard Summary (骨架頁 Ajax 異步載入，60 秒快取)
+    Route::get('/dashboard/summary', [DashboardSummaryController::class, 'summary']);
+
+    // System Settings
+    Route::get('/settings/device-session-timeout', [SystemSettingController::class, 'getDeviceSessionTimeout']);
+    Route::post('/settings/device-session-timeout', [SystemSettingController::class, 'updateDeviceSessionTimeout']);
+
+    // Machine API（聖經規範：snake_case、amount 整數元）
+    // assign_credit / settle_credit 已移交 MemberOps，V9 僅保留設備資訊查詢
+    Route::prefix('machine')->group(function () {
+        Route::get('/machine_info/{chip_id}', [MachineController::class, 'machineInfo']);
+    });
+
+    // Admin: Subscription Management
+    Route::middleware(['check.user.management.access'])->group(function () {
+        Route::get('/admin/subscription/list', [SubscriptionController::class, 'list']);
+        Route::put('/admin/subscription/{id}/extend', [SubscriptionController::class, 'extend']);
+        Route::get('/admin/subscription/audit/{id}', [SubscriptionController::class, 'auditLogs']);
+
+        // Admin: Billing Management
+        Route::get('/admin/billing/pending', [BillingController::class, 'pendingRequests']);
+        Route::put('/admin/billing/{id}/approve', [BillingController::class, 'approve']);
+        Route::put('/admin/billing/{id}/reject', [BillingController::class, 'reject']);
+
+        // M6 Admin - Force Lock (Admin Only)
+        Route::post('/admin/lock-all', [ReportController::class, 'lockAll']);
+    });
+});
+
+// LINE 服務 Webhook 端點（不需要用戶認證）
+Route::prefix('v9/line')->group(function () {
+    Route::post('/verify-binding', [LineBindingController::class, 'verifyBinding']);
+    Route::post('/handle-unfollow', [LineBindingController::class, 'handleUnfollow']);
+});
+
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+});

@@ -28,7 +28,7 @@ redis-cli ping
 launchctl list | grep com.hq.agents.supervisor
 
 # 查看最新 Agent 回報
-ls -lht _agent/inbox/ | head -5
+ls -lht .taskbox/inbox/ | head -5
 ```
 
 ### 2. 查看待辦
@@ -61,7 +61,7 @@ cat waw2.0_mainline_docs/01_CURRENT_MAINLINE_TODO.md
 | 任務流程（權威） | `brains/knowledge/01_agent_governance/MESSAGE_HUB_PROTOCOL.md` |
 | 知識庫索引 | `brains/knowledge/DOCUMENT_INDEX.md` |
 | Ina 待辦追蹤 | `waw2.0_mainline_docs/INA_TODO_FOLLOWUP_20260608.md` |
-| Agent 回報收件匣 | `_agent/inbox/` |
+| Agent 回報收件匣 | `.taskbox/inbox/` |
 
 ---
 

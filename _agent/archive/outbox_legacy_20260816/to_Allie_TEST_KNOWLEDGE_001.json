@@ -1,0 +1,1 @@
+{"type": "task", "task_id": "TEST_KNOWLEDGE_001", "to_agent": "Allie", "priority": "1", "description": "請讀取 brains/knowledge/02_technical_standards/MQTT_TOPIC_STANDARD.md 並回報該標準的摘要，以驗證知識庫存取規範。"}

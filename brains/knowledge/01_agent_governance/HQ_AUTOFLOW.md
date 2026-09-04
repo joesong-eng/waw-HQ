@@ -62,7 +62,7 @@ Joe 發出諮詢，給 Agent 先評估可行性：
 
 Gateway `on_report()` 收到回報：
 
-1. 存入 `_agent/inbox/<ts>_<agent>_auto.json`
+1. 存入 `.taskbox/inbox/<ts>_<agent>_auto.json`
 2. 讀取 context store（含完整歷史）
 3. 呼叫 LLM（`localhost:8000/v1/chat/completions`，model: `ag/claude-sonnet-4-6`）
 4. 解析 DECISION 標記

@@ -1,0 +1,48 @@
+<?php
+
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
+
+// 已停用：改用 Infra 直接寫入 revenue_facts
+// Schedule::command('devices:snapshot')->hourly();
+
+Schedule::command('line:clean-expired-codes')->hourly();
+
+// M6 BI Engine - T+1 鎖定機制（每小時執行）
+Schedule::job(new \App\Jobs\DailyRevenueLock)->hourly();
+
+// M7 Settlement System - 每月 1 號 00:00 UTC 生成上月結算單
+Schedule::job(new \App\Jobs\GenerateMonthlySettlements)
+    ->monthlyOn(1, '00:00')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// M2 Subscription Management - 每日 00:00 檢查過期訂閱
+Schedule::command('subscription:check-expiry')
+    ->dailyAt('00:00')
+    ->timezone('Asia/Taipei');
+
+// M8 Billing & Renewal - 每日 09:00 發送續費提醒
+Schedule::command('subscription:send-reminders')
+    ->dailyAt('09:00')
+    ->timezone('Asia/Taipei');
+
+// WAW 2.0 PHASE3 - 每日 10:00 發送欠費催收通知
+Schedule::command('arrears:notify')
+    ->dailyAt('10:00')
+    ->timezone('Asia/Taipei')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// 深夜自動對帳 - 每日 02:00 執行（T+1，確保當日資料完整）
+Schedule::command('v9:reconcile:nightly')
+    ->dailyAt('02:00')
+    ->timezone('Asia/Taipei')
+    ->withoutOverlapping()
+    ->onOneServer();

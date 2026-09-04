@@ -68,7 +68,7 @@ Joe（Kiro IDE 或 Codex CLI）
   ↓
 本機 hq_gateway.py（launchd 常駐）
   ↓ 觸發本機 codex exec（Agent 專案在本機）
-  ↓ 完成後寫入 _agent/inbox/
+  ↓ 完成後寫入 .taskbox/inbox/
   ↓ Telegram Bot 通知 Joe（知道結果）
 Joe 回到桌面後手動提示 Kiro → 審查結果 → 決策
 ```

@@ -1,0 +1,459 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Device;
+use App\Models\ProfitSharingProposal;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class ProfitSharingService
+{
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
+    /**
+     * Create a new profit sharing proposal
+     *
+     * @param Device $device
+     * @param User $proposer
+     * @param float $shareDeviceOwner
+     * @param float $shareVenueOwner
+     * @param string|null $reason
+     * @return ProfitSharingProposal
+     * @throws ValidationException
+     */
+    public function createProposal(
+        Device $device,
+        User $proposer,
+        float $shareDeviceOwner,
+        float $shareVenueOwner,
+        ?string $reason = null
+    ): ProfitSharingProposal {
+        // Check if device owner and venue owner are the same
+        if ($device->venue && $device->owner_id === $device->venue->owner_id) {
+            throw ValidationException::withMessages([
+                'device' => '設備擁有者和場地擁有者相同，無需分潤設定'
+            ]);
+        }
+
+        // Validate profit sharing percentages
+        $this->validateProfitSharing($shareDeviceOwner, $shareVenueOwner);
+
+        // Determine approver (the other party)
+        $approver = $this->determineApprover($device, $proposer);
+
+        if (!$approver) {
+            throw ValidationException::withMessages([
+                'device' => '無法確定審批人，請確認設備已分配場地'
+            ]);
+        }
+
+        // Check if there's already a pending proposal for this device
+        $existingProposal = ProfitSharingProposal::where('device_id', $device->id)
+            ->where('status', 'pending')
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if ($existingProposal) {
+            throw ValidationException::withMessages([
+                'device' => '該設備已有待審批的分潤提案'
+            ]);
+        }
+
+        // Create proposal
+        $proposal = DB::transaction(function () use (
+            $device,
+            $proposer,
+            $approver,
+            $shareDeviceOwner,
+            $shareVenueOwner,
+            $reason
+        ) {
+            $proposal = ProfitSharingProposal::create([
+                'device_id' => $device->id,
+                'proposer_id' => $proposer->id,
+                'approver_id' => $approver->id,
+                'share_device_owner' => $shareDeviceOwner,
+                'share_venue_owner' => $shareVenueOwner,
+                'status' => 'pending',
+                'reason' => $reason,
+                'expires_at' => now()->addDays(7),
+            ]);
+
+            // Send notification to approver
+            $this->sendProposalNotification($proposal);
+
+            return $proposal;
+        });
+
+        return $proposal;
+    }
+
+    /**
+     * Approve a profit sharing proposal
+     *
+     * @param ProfitSharingProposal $proposal
+     * @param User $approver
+     * @param string|null $reason
+     * @return ProfitSharingProposal
+     * @throws ValidationException
+     */
+    public function approveProposal(
+        ProfitSharingProposal $proposal,
+        User $approver,
+        ?string $reason = null
+    ): ProfitSharingProposal {
+        // Verify approver
+        if ($proposal->approver_id !== $approver->id) {
+            throw ValidationException::withMessages([
+                'proposal' => '您無權審批此提案'
+            ]);
+        }
+
+        // Check if proposal is still pending
+        if ($proposal->status !== 'pending') {
+            throw ValidationException::withMessages([
+                'proposal' => '此提案已被處理'
+            ]);
+        }
+
+        // Check if proposal is expired
+        if ($proposal->isExpired()) {
+            throw ValidationException::withMessages([
+                'proposal' => '此提案已過期'
+            ]);
+        }
+
+        DB::transaction(function () use ($proposal, $reason) {
+            // Approve the proposal (this also updates the device)
+            $proposal->approve();
+
+            // Update reason if provided
+            if ($reason) {
+                $proposal->update(['reason' => $reason]);
+            }
+
+            // Send notification to proposer
+            $this->sendApprovalNotification($proposal);
+        });
+
+        return $proposal->fresh();
+    }
+
+    /**
+     * Reject a profit sharing proposal
+     *
+     * @param ProfitSharingProposal $proposal
+     * @param User $approver
+     * @param string|null $reason
+     * @return ProfitSharingProposal
+     * @throws ValidationException
+     */
+    public function rejectProposal(
+        ProfitSharingProposal $proposal,
+        User $approver,
+        ?string $reason = null
+    ): ProfitSharingProposal {
+        // Verify approver
+        if ($proposal->approver_id !== $approver->id) {
+            throw ValidationException::withMessages([
+                'proposal' => '您無權審批此提案'
+            ]);
+        }
+
+        // Check if proposal is still pending
+        if ($proposal->status !== 'pending') {
+            throw ValidationException::withMessages([
+                'proposal' => '此提案已被處理'
+            ]);
+        }
+
+        DB::transaction(function () use ($proposal, $reason) {
+            // Reject the proposal
+            $proposal->reject();
+
+            // Update reason if provided
+            if ($reason) {
+                $proposal->update(['reason' => $reason]);
+            }
+
+            // Send notification to proposer
+            $this->sendRejectionNotification($proposal);
+        });
+
+        return $proposal->fresh();
+    }
+
+    /**
+     * Get pending proposals for a user
+     *
+     * @param User $user
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getPendingProposals(User $user)
+    {
+        return ProfitSharingProposal::with(['device', 'proposer', 'approver'])
+            ->where(function ($query) use ($user) {
+                $query->where('approver_id', $user->id)
+                      ->orWhere('proposer_id', $user->id);
+            })
+            ->where('status', 'pending')
+            ->where('expires_at', '>', now())
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    /**
+     * Batch approve multiple profit sharing proposals
+     *
+     * @param array $proposalIds
+     * @param User $approver
+     * @param string|null $reason
+     * @return array
+     * @throws ValidationException
+     */
+    public function batchApproveProposals(
+        array $proposalIds,
+        User $approver,
+        ?string $reason = null
+    ): array {
+        $results = [
+            'approved' => [],
+            'failed' => [],
+        ];
+
+        foreach ($proposalIds as $proposalId) {
+            try {
+                $proposal = ProfitSharingProposal::find($proposalId);
+
+                if (!$proposal) {
+                    $results['failed'][] = [
+                        'proposal_id' => $proposalId,
+                        'error' => '提案不存在',
+                    ];
+                    continue;
+                }
+
+                // Verify approver
+                if ($proposal->approver_id !== $approver->id) {
+                    $results['failed'][] = [
+                        'proposal_id' => $proposalId,
+                        'device_name' => $proposal->device->name ?? '未知設備',
+                        'error' => '您無權審批此提案',
+                    ];
+                    continue;
+                }
+
+                // Check if proposal is still pending
+                if ($proposal->status !== 'pending') {
+                    $results['failed'][] = [
+                        'proposal_id' => $proposalId,
+                        'device_name' => $proposal->device->name ?? '未知設備',
+                        'error' => '此提案已被處理',
+                    ];
+                    continue;
+                }
+
+                // Check if proposal is expired
+                if ($proposal->isExpired()) {
+                    $results['failed'][] = [
+                        'proposal_id' => $proposalId,
+                        'device_name' => $proposal->device->name ?? '未知設備',
+                        'error' => '此提案已過期',
+                    ];
+                    continue;
+                }
+
+                // Approve the proposal
+                DB::transaction(function () use ($proposal, $reason) {
+                    $proposal->approve();
+                    if ($reason) {
+                        $proposal->update(['reason' => $reason]);
+                    }
+                    $this->sendApprovalNotification($proposal);
+                });
+
+                $results['approved'][] = [
+                    'proposal_id' => $proposalId,
+                    'device_id' => $proposal->device_id,
+                    'device_name' => $proposal->device->name ?? '未知設備',
+                    'share_device_owner' => $proposal->share_device_owner,
+                    'share_venue_owner' => $proposal->share_venue_owner,
+                ];
+            } catch (\Exception $e) {
+                $results['failed'][] = [
+                    'proposal_id' => $proposalId,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Batch reject multiple profit sharing proposals
+     *
+     * @param array $proposalIds
+     * @param User $approver
+     * @param string|null $reason
+     * @return array
+     * @throws ValidationException
+     */
+    public function batchRejectProposals(
+        array $proposalIds,
+        User $approver,
+        ?string $reason = null
+    ): array {
+        $results = [
+            'rejected' => [],
+            'failed' => [],
+        ];
+
+        foreach ($proposalIds as $proposalId) {
+            try {
+                $proposal = ProfitSharingProposal::find($proposalId);
+
+                if (!$proposal) {
+                    $results['failed'][] = [
+                        'proposal_id' => $proposalId,
+                        'error' => '提案不存在',
+                    ];
+                    continue;
+                }
+
+                // Verify approver
+                if ($proposal->approver_id !== $approver->id) {
+                    $results['failed'][] = [
+                        'proposal_id' => $proposalId,
+                        'device_name' => $proposal->device->name ?? '未知設備',
+                        'error' => '您無權審批此提案',
+                    ];
+                    continue;
+                }
+
+                // Check if proposal is still pending
+                if ($proposal->status !== 'pending') {
+                    $results['failed'][] = [
+                        'proposal_id' => $proposalId,
+                        'device_name' => $proposal->device->name ?? '未知設備',
+                        'error' => '此提案已被處理',
+                    ];
+                    continue;
+                }
+
+                // Reject the proposal
+                DB::transaction(function () use ($proposal, $reason) {
+                    $proposal->reject();
+                    if ($reason) {
+                        $proposal->update(['reason' => $reason]);
+                    }
+                    $this->sendRejectionNotification($proposal);
+                });
+
+                $results['rejected'][] = [
+                    'proposal_id' => $proposalId,
+                    'device_id' => $proposal->device_id,
+                    'device_name' => $proposal->device->name ?? '未知設備',
+                ];
+            } catch (\Exception $e) {
+                $results['failed'][] = [
+                    'proposal_id' => $proposalId,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Validate profit sharing percentages
+     *
+     * @param float $shareDeviceOwner
+     * @param float $shareVenueOwner
+     * @throws ValidationException
+     */
+    private function validateProfitSharing(float $shareDeviceOwner, float $shareVenueOwner): void
+    {
+        $total = $shareDeviceOwner + $shareVenueOwner;
+
+        if (abs($total - 100.0) > 0.01) {
+            throw ValidationException::withMessages([
+                'share_device_owner' => '分潤比例加總必須為 100%',
+                'share_venue_owner' => '分潤比例加總必須為 100%',
+            ]);
+        }
+
+        if ($shareDeviceOwner < 0 || $shareDeviceOwner > 100) {
+            throw ValidationException::withMessages([
+                'share_device_owner' => '機台分成必須在 0-100% 之間'
+            ]);
+        }
+
+        if ($shareVenueOwner < 0 || $shareVenueOwner > 100) {
+            throw ValidationException::withMessages([
+                'share_venue_owner' => '場地分成必須在 0-100% 之間'
+            ]);
+        }
+    }
+
+    /**
+     * Determine who should approve the proposal
+     *
+     * @param Device $device
+     * @param User $proposer
+     * @return User|null
+     */
+    private function determineApprover(Device $device, User $proposer): ?User
+    {
+        // If proposer is device owner, approver is venue owner
+        if ($device->owner_id === $proposer->id) {
+            return $device->venue?->owner;
+        }
+
+        // If proposer is venue owner, approver is device owner
+        if ($device->venue && $device->venue->owner_id === $proposer->id) {
+            return $device->owner;
+        }
+
+        return null;
+    }
+
+    /**
+     * Send notification when a proposal is created
+     *
+     * @param ProfitSharingProposal $proposal
+     */
+    private function sendProposalNotification(ProfitSharingProposal $proposal): void
+    {
+        $this->notificationService->sendProfitSharingNotification($proposal);
+    }
+
+    /**
+     * Send notification when a proposal is approved
+     *
+     * @param ProfitSharingProposal $proposal
+     */
+    private function sendApprovalNotification(ProfitSharingProposal $proposal): void
+    {
+        $this->notificationService->sendApprovalNotification($proposal);
+    }
+
+    /**
+     * Send notification when a proposal is rejected
+     *
+     * @param ProfitSharingProposal $proposal
+     */
+    private function sendRejectionNotification(ProfitSharingProposal $proposal): void
+    {
+        $this->notificationService->sendRejectionNotification($proposal);
+    }
+}

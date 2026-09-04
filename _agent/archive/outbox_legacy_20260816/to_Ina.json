@@ -1,0 +1,1 @@
+{"type": "task", "task_id": "TASK_20260805_INFRA_REGULARIZE_COMMAND_LOGS", "to_agent": "Ina", "priority": "1", "description": "審查 Sophie 在 Owner 中使用的 device_command_logs 結構，將其納入 DB_MANIFEST.md 規範並完成正式的表結構治理與審計"}

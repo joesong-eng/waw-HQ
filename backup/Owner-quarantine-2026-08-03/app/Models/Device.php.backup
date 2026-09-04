@@ -1,0 +1,288 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\DeviceType;
+
+class Device extends Model
+{
+    use HasFactory;
+    protected $fillable = [
+        'chip_id',
+        'owner_id',
+        'venue_id',
+        'name',
+        'type',
+        'type_id',
+        'pulse_to_display',
+        'ticket_mode',
+        'out_pulse_to_ticket',
+        'ticket_value',
+        'direct_prize_cost',
+        'placement_type',
+        'share_device_owner',
+        'share_venue_owner',
+        'promo_budget_monthly',
+        'promo_budget_used',
+        'status',
+        'is_test',
+        'lifetime_credit_in',
+        'lifetime_credit_out',
+        'lifetime_pulse',
+        'last_seen_at',
+        'config_json',
+        'pulse_to_token',
+        'firmware_ver',
+        'timezone',
+    ];
+
+    protected $casts = [
+        'config_json' => 'array',
+        'last_seen_at' => 'datetime',
+        'share_device_owner' => 'decimal:2',
+        'share_venue_owner' => 'decimal:2',
+        'promo_budget_monthly' => 'decimal:2',
+        'promo_budget_used' => 'decimal:2',
+        'pulse_to_display' => 'integer',
+        'out_pulse_to_ticket' => 'integer',
+        'ticket_value' => 'integer',
+        'direct_prize_cost' => 'integer',
+        'pulse_to_token' => 'decimal:2',
+    ];
+
+    /**
+     * 設備是否在線 (5分鐘內有心跳)
+     */
+    public function getIsAliveAttribute(): bool
+    {
+        if (!$this->last_seen_at) {
+            return false;
+        }
+        return $this->last_seen_at->diffInMinutes(now()) < 5;
+    }
+
+    /**
+     * Device owner relationship
+     */
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
+     * 機種關聯（動態機種）
+     */
+    public function deviceType()
+    {
+        return $this->belongsTo(DeviceType::class, 'type_id');
+    }
+
+    /**
+     * 歸屬場地
+     */
+    public function venue()
+    {
+        return $this->belongsTo(Venue::class);
+    }
+
+    /**
+     * Audit logs for this device
+     */
+    public function auditLogs()
+    {
+        return $this->hasMany(DeviceAuditLog::class);
+    }
+
+    /**
+     * Command logs for this device (開洗分操作記錄)
+     */
+    public function commandLogs()
+    {
+        return $this->hasMany(DeviceCommandLog::class);
+    }
+
+    /**
+     * Scope: Get only active devices
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope: Filter devices by venue
+     */
+    public function scopeByVenue($query, $venueId)
+    {
+        return $query->where('venue_id', $venueId);
+    }
+
+    /**
+     * Scope: Filter devices by status
+     */
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope: Search devices by name or chip_id
+     */
+    public function scopeSearch($query, $term)
+    {
+        return $query->where('name', 'like', "%{$term}%")
+                     ->orWhere('chip_id', 'like', "%{$term}%");
+    }
+
+    /**
+     * Get period statistics for this device
+     * Calculates credit in/out for a specific time range using RevenueFact
+     * 
+     * @param string $range day|week|month
+     * @return array ['period_credit_in' => int, 'period_credit_out' => int]
+     */
+    public function getPeriodStats(string $range): array
+    {
+        $startDate = $this->calculatePeriodStart($range);
+        
+        // Sum delta_value (incremental changes) from revenue_facts for this period
+        $periodCreditIn = RevenueFact::where('device_id', $this->id)
+            ->where('transaction_type', 'credit_in')
+            ->where('event_ts', '>=', $startDate)
+            ->where('is_valid', true)
+            ->sum('delta_value') ?: 0;
+        
+        // Sum delta_value (incremental changes) from revenue_facts for this period
+        $periodCreditOut = RevenueFact::where('device_id', $this->id)
+            ->where('transaction_type', 'credit_out')
+            ->where('event_ts', '>=', $startDate)
+            ->where('is_valid', true)
+            ->sum('delta_value') ?: 0;
+        
+        return [
+            'period_credit_in' => (int) $periodCreditIn,
+            'period_credit_out' => (int) $periodCreditOut,
+        ];
+    }
+    
+    /**
+     * Calculate period start time based on range parameter
+     * Uses venue timezone for period boundaries, returns UTC for database query
+     * 
+     * @param string $range day|week|month
+     * @return \Carbon\Carbon
+     */
+    public function calculatePeriodStart(string $range): \Carbon\Carbon
+    {
+        // Use venue timezone if available, fallback to Asia/Taipei
+        $timezone = $this->venue?->timezone ?? 'Asia/Taipei';
+        
+        return match($range) {
+            'day' => now($timezone)->startOfDay()->utc(),
+            'week' => now($timezone)->startOfWeek()->utc(),
+            'month' => now($timezone)->startOfMonth()->utc(),
+            default => now($timezone)->startOfDay()->utc(),
+        };
+    }
+
+    /**
+     * 獲取設備的參數
+     * 
+     * @return array
+     */
+    public function getParameters(): array
+    {
+        return [
+            'pulse_to_display'  => $this->pulse_to_display ?? 100,
+            'ticket_mode'       => $this->ticket_mode,
+            'out_pulse_to_ticket' => $this->out_pulse_to_ticket,
+            'ticket_value'      => $this->ticket_value,
+            'direct_prize_cost' => $this->direct_prize_cost,
+        ];
+    }
+
+    /**
+     * 更新設備參數
+     * 
+     * @param array $parameters
+     * @return bool
+     */
+    public function updateParameters(array $parameters): bool
+    {
+        $allowedParams = [
+            'pulse_to_display',
+            'ticket_mode',
+            'out_pulse_to_ticket',
+            'ticket_value',
+            'direct_prize_cost',
+        ];
+        
+        $updateData = [];
+        foreach ($allowedParams as $param) {
+            if (array_key_exists($param, $parameters)) {
+                $updateData[$param] = $parameters[$param];
+            }
+        }
+        
+        if (empty($updateData)) {
+            return false;
+        }
+        
+        return $this->update($updateData);
+    }
+
+    /**
+     * 格式化參數用於顯示
+     * 
+     * @return array
+     */
+    public function getFormattedParameters(): array
+    {
+        return [
+            'pulse_to_display'    => (int) ($this->pulse_to_display ?? 100),
+            'ticket_mode'         => $this->ticket_mode,
+            'out_pulse_to_ticket' => $this->out_pulse_to_ticket ? (int) $this->out_pulse_to_ticket : null,
+            'ticket_value'        => $this->ticket_value ? (int) $this->ticket_value : null,
+            'direct_prize_cost'   => $this->direct_prize_cost ? (int) $this->direct_prize_cost : null,
+        ];
+    }
+
+    /**
+     * 驗證參數是否完整
+     * 
+     * @return bool
+     */
+    public function hasCompleteParameters(): bool
+    {
+        if (is_null($this->pulse_to_display) || is_null($this->ticket_mode)) {
+            return false;
+        }
+
+        return match ($this->ticket_mode) {
+            'virtual_ticket', 'physical_ticket' =>
+                !is_null($this->out_pulse_to_ticket) && !is_null($this->ticket_value),
+            'direct_prize' =>
+                !is_null($this->direct_prize_cost),
+            default => false,
+        };
+    }
+
+    /**
+     * 獲取參數變更歷史
+     */
+    public function parameterChangeLogs()
+    {
+        return $this->hasMany(ParameterChangeLog::class);
+    }
+
+    /**
+     * Ensure chip_id is always stored as lowercase
+     * This follows the V9 engineering standard for consistent MAC-to-Chip mapping
+     */
+    public function setChipIdAttribute($value)
+    {
+        $this->attributes['chip_id'] = strtolower($value);
+    }
+}

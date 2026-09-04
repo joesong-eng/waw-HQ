@@ -2,19 +2,19 @@
 
 > 狀態：已透過 HQ Message Hub 發出正式跟進任務  
 > 任務 ID：`TASK_20260608_INA_TODO_FOLLOWUP`  
-> Outbox：`_agent/outbox/to_Ina.json`
+> Outbox：`.taskbox/outbox/to_Ina.json`
 
 ---
 
 ## 2026-06-08 06:37 修正
 
-第一次使用舊 `hq_publish_task.sh` 並傳入小寫 `ina`，產生了 `_agent/outbox/to_ina.json`。但 v2 Agent 檢查腳本會讀取首字母大寫檔名：`_agent/outbox/to_Ina.json`。
+第一次使用舊 `hq_publish_task.sh` 並傳入小寫 `ina`，產生了 `.taskbox/outbox/to_ina.json`。但 v2 Agent 檢查腳本會讀取首字母大寫檔名：`.taskbox/outbox/to_Ina.json`。
 
 已改用 `scripts/hq_task_flow.sh task ina ...` 重新發布，現在正式任務位於：
 
-- `_agent/outbox/to_Ina.json`
+- `.taskbox/outbox/to_Ina.json`
 
-注意：目前 `_agent/outbox/to_Ina.json.read` 的時間早於本次任務發布，只能代表舊測試任務曾被讀取，不能代表 Ina 已讀本次跟進任務。
+注意：目前 `.taskbox/outbox/to_Ina.json.read` 的時間早於本次任務發布，只能代表舊測試任務曾被讀取，不能代表 Ina 已讀本次跟進任務。
 
 ---
 

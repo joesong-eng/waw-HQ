@@ -48,9 +48,9 @@
 ```
 HQ Message Hub
 ├── HTTP 服務：localhost:8899
-├── 收件匣：_agent/inbox/
-├── 發件匣：_agent/outbox/
-└── 歷史：_agent/archive/
+├── .taskbox/inbox/
+├── .taskbox/outbox/
+└── 歷史：.taskbox/archive/
 ```
 
 ---

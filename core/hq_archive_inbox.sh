@@ -4,8 +4,8 @@
 # 範例：./hq_archive_inbox.sh 7  # 歸檔 7 天前的訊息
 
 DAYS="${1:-7}"
-INBOX_DIR="_agent/inbox"
-ARCHIVE_DIR="_agent/archive/$(date +%Y%m)"
+INBOX_DIR=".taskbox/inbox"
+ARCHIVE_DIR=".taskbox/archive/$(date +%Y%m)"
 
 if [ ! -d "${INBOX_DIR}" ]; then
     echo "📭 收件匣為空"

@@ -46,7 +46,7 @@ Message Hub（localhost:8899）
 Ina 分身（launchd PID 常駐，agent_redis_listener.py）
  │  自動 codex exec
  ▼
-執行任務 → agent_report_to_hq_v2.sh → HQ/_agent/inbox/
+執行任務 → agent_report_to_hq_v2.sh → HQ/.taskbox/inbox/
 ```
 
 - **我（HQ Session）** = 發令 + 被動讀結果，不監控

@@ -1,0 +1,677 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Settlement;
+use App\Models\SettlementLog;
+use App\Models\DailyRevenueReport;
+use App\Models\Device;
+use App\Models\Venue;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
+
+/**
+ * 結算服務
+ * 
+ * 處理結算單生成、狀態流轉、分潤計算
+ */
+class SettlementService
+{
+    public function __construct(
+        private ProfitCalculator $profitCalculator,
+        private NotificationService $notificationService
+    ) {}
+
+    /**
+     * 生成月度結算單
+     * 
+     * @param string $yearMonth 年月（格式：YYYY-MM）
+     * @return array Settlement 對象數組
+     * @throws InvalidArgumentException
+     */
+    public function generateMonthlySettlements(string $yearMonth): array
+    {
+        if (!preg_match('/^\d{4}-\d{2}$/', $yearMonth)) {
+            throw new InvalidArgumentException("年月格式錯誤，應為 YYYY-MM: {$yearMonth}");
+        }
+
+        Log::info("SettlementService: 開始生成月度結算單 (V9 Multi-Owner Mode)", ['period' => $yearMonth]);
+
+        $periodStart = Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth()->toDateString();
+        $periodEnd = Carbon::createFromFormat('Y-m', $yearMonth)->endOfMonth()->toDateString();
+
+        // 查詢鎖定且未結算的報表，並預加載設備和場地資訊
+        $lockedReports = DailyRevenueReport::with(['venue', 'device'])
+            ->where('is_locked', true)
+            ->whereNull('settlement_id')
+            ->whereBetween('report_date', [$periodStart, $periodEnd])
+            ->get();
+
+        if ($lockedReports->isEmpty()) {
+            return [];
+        }
+
+        // 按 (venue_id, device_owner_id, venue_owner_id) 分組
+        // 這允許同一個場地有多個設備主，或同一個設備主在多個場地
+        $groupedReports = $lockedReports->groupBy(function ($report) {
+            $device = $report->device;
+            $venue = $report->venue;
+            
+            if (!$device || !$venue) return null;
+
+            return "{$venue->id}_{$device->owner_id}_{$venue->owner_id}";
+        })->filter();
+
+        $settlements = [];
+
+        DB::transaction(function () use ($groupedReports, $yearMonth, $periodStart, $periodEnd, &$settlements) {
+            foreach ($groupedReports as $groupKey => $reports) {
+                try {
+                    $settlement = $this->createSettlementForGroup(
+                        $reports,
+                        $yearMonth,
+                        $periodStart,
+                        $periodEnd
+                    );
+
+                    if ($settlement) {
+                        $settlements[] = $settlement;
+                    }
+                } catch (\Exception $e) {
+                    Log::error("SettlementService: 創建結算單失敗", [
+                        'group_key' => $groupKey,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        });
+
+        return $settlements;
+    }
+
+    /**
+     * 為一組報表創建結算單
+     * 
+     * @param \Illuminate\Support\Collection $reports 報表集合
+     * @param string $yearMonth 年月
+     * @param string $periodStart 期間開始
+     * @param string $periodEnd 期間結束
+     * @return Settlement|null
+     */
+    private function createSettlementForGroup($reports, string $yearMonth, string $periodStart, string $periodEnd): ?Settlement
+    {
+        $firstReport = $reports->first();
+        $venue = $firstReport->venue;
+        $deviceOwnerId = $firstReport->device->owner_id;
+        $venueOwnerId = $venue->owner_id;
+
+        // 按設備 ID 進一步細分
+        $reportsByDevice = $reports->groupBy('device_id');
+
+        $totalRevenue = '0.00';
+        $totalPreTaxExpenses = '0.00';
+        $totalDeviceOwnerAmount = '0.00';
+        $totalVenueOwnerAmount = '0.00';
+        $deviceBreakdown = [];
+
+        foreach ($reportsByDevice as $deviceId => $deviceReports) {
+            $device = $deviceReports->first()->device;
+            
+            // 1. 計算該設備總營收
+            $deviceRevenue = '0.00';
+            foreach ($deviceReports as $r) {
+                $deviceRevenue = bcadd($deviceRevenue, (string) $r->total_amount, 2);
+            }
+
+            // 2. 獲取預算扣除額 (Flying Account / 飛帳)
+            // 業務邏輯：本月補償預算使用額在分潤前扣除，相當於按比例共同支出
+            $budgetUsed = (string) ($device->promo_budget_used ?? 0);
+
+            // 3. 計算應納稅營收 (Taxable Revenue)
+            $taxableRevenue = bcsub($deviceRevenue, $budgetUsed, 2);
+            if (bccomp($taxableRevenue, '0.00', 2) < 0) $taxableRevenue = '0.00';
+
+            // 4. 計算分潤
+            $deviceOwnerShare = bcdiv((string) $device->share_device_owner, '100', 4);
+            $venueOwnerShare = bcdiv((string) $device->share_venue_owner, '100', 4);
+
+            $deviceOwnerAmount = bcmul($taxableRevenue, $deviceOwnerShare, 2);
+            $venueOwnerAmount = bcmul($taxableRevenue, $venueOwnerShare, 2);
+
+            // 5. 累加及紀錄分解資訊
+            $totalRevenue = bcadd($totalRevenue, $deviceRevenue, 2);
+            $totalPreTaxExpenses = bcadd($totalPreTaxExpenses, $budgetUsed, 2);
+            $totalDeviceOwnerAmount = bcadd($totalDeviceOwnerAmount, $deviceOwnerAmount, 2);
+            $totalVenueOwnerAmount = bcadd($totalVenueOwnerAmount, $venueOwnerAmount, 2);
+
+            $deviceBreakdown[] = [
+                'device_id' => $device->id,
+                'name' => $device->name,
+                'chip_id' => $device->chip_id,
+                'revenue' => (float) $deviceRevenue,
+                'pre_tax_expenses' => (float) $budgetUsed,
+                'taxable_revenue' => (float) $taxableRevenue,
+                'shares' => [
+                    'device_owner' => (float) $device->share_device_owner,
+                    'venue_owner' => (float) $device->share_venue_owner,
+                ],
+                'amounts' => [
+                    'device_owner' => (float) $deviceOwnerAmount,
+                    'venue_owner' => (float) $venueOwnerAmount,
+                ]
+            ];
+        }
+
+        if (bccomp($totalRevenue, '0.00', 2) === 0) return null;
+
+        $settlementNumber = $this->generateSettlementNumber($yearMonth, $venue->id, $deviceOwnerId);
+
+        // 創建結算單
+        $settlement = Settlement::create([
+            'settlement_number' => $settlementNumber,
+            'venue_id' => $venue->id,
+            'device_owner_id' => $deviceOwnerId,
+            'venue_owner_id' => $venueOwnerId,
+            'period_start' => $periodStart,
+            'period_end' => $periodEnd,
+            'total_revenue' => $totalRevenue,
+            'pre_tax_expenses' => $totalPreTaxExpenses,
+            'taxable_revenue' => bcsub($totalRevenue, $totalPreTaxExpenses, 2),
+            'device_owner_amount' => $totalDeviceOwnerAmount,
+            'venue_owner_amount' => $totalVenueOwnerAmount,
+            'device_breakdown' => $deviceBreakdown,
+            'status' => 'created',
+        ]);
+
+        // 關聯報表
+        foreach ($reports as $report) {
+            $report->update(['settlement_id' => $settlement->id]);
+        }
+
+        // 重置飛帳預算（如果是結案或生成結算，應將此預算歸零進入下一月週期）
+        // 視業務需求，這裡我們在生成結算時就將 used 欄位歸位
+        foreach ($reportsByDevice as $deviceId => $deviceReports) {
+            $deviceReports->first()->device->update(['promo_budget_used' => 0]);
+        }
+
+        $this->createLog($settlement, 0, 'created', null, 'created', ['period' => $yearMonth]);
+        $this->sendSettlementCreatedNotification($settlement);
+
+        return $settlement;
+    }
+
+    /**
+     * 生成結算單號
+     * 
+     * 格式：STL-YYYYMM-{venue_id}-{device_owner_id}
+     * 
+     * @param string $yearMonth 年月
+     * @param int $venueId 場地 ID
+     * @param int $deviceOwnerId 設備主 ID
+     * @return string
+     */
+    private function generateSettlementNumber(string $yearMonth, int $venueId, int $deviceOwnerId): string
+    {
+        $yearMonthCompact = str_replace('-', '', $yearMonth);
+        return "STL-{$yearMonthCompact}-{$venueId}-{$deviceOwnerId}";
+    }
+
+    /**
+     * 創建審計日誌
+     * 
+     * @param Settlement $settlement 結算單
+     * @param int $userId 操作者 ID（0 表示系統）
+     * @param string $action 動作
+     * @param string|null $fromStatus 原狀態
+     * @param string $toStatus 新狀態
+     * @param array $metadata 元數據
+     * @return SettlementLog
+     */
+    private function createLog(
+        Settlement $settlement,
+        int $userId,
+        string $action,
+        ?string $fromStatus,
+        string $toStatus,
+        array $metadata = []
+    ): SettlementLog {
+        return SettlementLog::create([
+            'settlement_id' => $settlement->id,
+            'user_id' => $userId,
+            'action' => $action,
+            'from_status' => $fromStatus,
+            'to_status' => $toStatus,
+            'metadata' => $metadata,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+    }
+
+    /**
+     * 發送結算單創建通知
+     * 
+     * @param Settlement $settlement 結算單
+     */
+    private function sendSettlementCreatedNotification(Settlement $settlement): void
+    {
+        try {
+            // 通知場地主
+            $this->notificationService->sendProfitSharingNotification(
+                $settlement->venueOwner,
+                '結算單已生成',
+                "您的結算單 {$settlement->settlement_number} 已生成，總營收 NT$ " . 
+                number_format($settlement->total_revenue, 0) . "，請確認。",
+                route('settlements.show', $settlement->id)
+            );
+
+            Log::info("SettlementService: 結算單通知已發送", [
+                'settlement_id' => $settlement->id,
+                'venue_owner_id' => $settlement->venue_owner_id
+            ]);
+        } catch (\Exception $e) {
+            Log::error("SettlementService: 發送通知失敗", [
+                'settlement_id' => $settlement->id,
+                'error' => $e->getMessage()
+            ]);
+            // 不拋出異常，通知失敗不應影響結算單創建
+        }
+    }
+
+    /**
+     * 確認結算單（場地主操作）
+     * 
+     * @param int $settlementId 結算單 ID
+     * @param int $userId 操作者 ID
+     * @return Settlement
+     * @throws InvalidArgumentException
+     */
+    public function confirmSettlement(int $settlementId, int $userId): Settlement
+    {
+        $settlement = Settlement::findOrFail($settlementId);
+
+        // 驗證狀態
+        if (!$settlement->canConfirm()) {
+            throw new InvalidArgumentException(
+                "結算單狀態不允許確認，當前狀態: {$settlement->status}"
+            );
+        }
+
+        // 更新狀態
+        $settlement->update([
+            'status' => 'confirmed',
+            'confirmed_at' => now(),
+        ]);
+
+        // 創建審計日誌
+        $this->createLog($settlement, $userId, 'confirmed', 'created', 'confirmed');
+
+        // 發送通知給設備主
+        $this->sendSettlementConfirmedNotification($settlement);
+
+        Log::info("SettlementService: 結算單已確認", [
+            'settlement_id' => $settlementId,
+            'user_id' => $userId
+        ]);
+
+        return $settlement->fresh();
+    }
+
+    /**
+     * 標記已付款（設備主操作）
+     * 
+     * @param int $settlementId 結算單 ID
+     * @param int $userId 操作者 ID
+     * @param array $paymentProof 付款證明（可選）
+     * @return Settlement
+     * @throws InvalidArgumentException
+     */
+    public function markAsPaid(int $settlementId, int $userId, array $paymentProof = []): Settlement
+    {
+        $settlement = Settlement::findOrFail($settlementId);
+
+        // 驗證狀態
+        if (!$settlement->canMarkPaid()) {
+            throw new InvalidArgumentException(
+                "結算單狀態不允許標記已付款，當前狀態: {$settlement->status}"
+            );
+        }
+
+        // 更新狀態
+        $updateData = [
+            'status' => 'paid',
+            'paid_at' => now(),
+        ];
+
+        if (isset($paymentProof['payment_proof_url'])) {
+            $updateData['payment_proof_url'] = $paymentProof['payment_proof_url'];
+        }
+
+        $settlement->update($updateData);
+
+        // 創建審計日誌
+        $this->createLog($settlement, $userId, 'paid', 'confirmed', 'paid', $paymentProof);
+
+        // 發送通知給場地主
+        $this->sendSettlementPaidNotification($settlement);
+
+        Log::info("SettlementService: 結算單已標記為已付款", [
+            'settlement_id' => $settlementId,
+            'user_id' => $userId
+        ]);
+
+        return $settlement->fresh();
+    }
+
+    /**
+     * 結案（場地主操作）
+     * 
+     * @param int $settlementId 結算單 ID
+     * @param int $userId 操作者 ID
+     * @return Settlement
+     * @throws InvalidArgumentException
+     */
+    public function closeSettlement(int $settlementId, int $userId): Settlement
+    {
+        $settlement = Settlement::findOrFail($settlementId);
+
+        // 驗證狀態
+        if (!$settlement->canClose()) {
+            throw new InvalidArgumentException(
+                "結算單狀態不允許結案，當前狀態: {$settlement->status}"
+            );
+        }
+
+        // 更新狀態
+        $settlement->update([
+            'status' => 'closed',
+            'closed_at' => now(),
+        ]);
+
+        // 創建審計日誌
+        $this->createLog($settlement, $userId, 'closed', 'paid', 'closed');
+
+        // 發送通知給設備主
+        $this->sendSettlementClosedNotification($settlement);
+
+        Log::info("SettlementService: 結算單已結案", [
+            'settlement_id' => $settlementId,
+            'user_id' => $userId
+        ]);
+
+        return $settlement->fresh();
+    }
+
+    /**
+     * 提出爭議
+     * 
+     * @param int $settlementId 結算單 ID
+     * @param int $userId 操作者 ID
+     * @param string $reason 爭議原因
+     * @return Settlement
+     * @throws InvalidArgumentException
+     */
+    public function raiseDispute(int $settlementId, int $userId, string $reason): Settlement
+    {
+        $settlement = Settlement::findOrFail($settlementId);
+
+        // 驗證狀態
+        if (!$settlement->canDispute()) {
+            throw new InvalidArgumentException(
+                "結算單狀態不允許提出爭議，當前狀態: {$settlement->status}"
+            );
+        }
+
+        // 驗證原因
+        if (empty(trim($reason))) {
+            throw new InvalidArgumentException("爭議原因不能為空");
+        }
+
+        if (strlen($reason) > 1000) {
+            throw new InvalidArgumentException("爭議原因不能超過 1000 字符");
+        }
+
+        $fromStatus = $settlement->status;
+
+        // 更新狀態
+        $settlement->update([
+            'status' => 'disputed',
+            'disputed_at' => now(),
+            'dispute_reason' => $reason,
+        ]);
+
+        // 創建審計日誌
+        $this->createLog($settlement, $userId, 'disputed', $fromStatus, 'disputed', [
+            'reason' => $reason
+        ]);
+
+        // 發送通知給雙方和管理員
+        $this->sendDisputeNotification($settlement, $userId);
+
+        Log::info("SettlementService: 爭議已提出", [
+            'settlement_id' => $settlementId,
+            'user_id' => $userId,
+            'from_status' => $fromStatus
+        ]);
+
+        return $settlement->fresh();
+    }
+
+    /**
+     * 解決爭議（管理員操作）
+     * 
+     * @param int $settlementId 結算單 ID
+     * @param int $adminId 管理員 ID
+     * @param string $resolution 解決方案
+     * @param string $newStatus 新狀態
+     * @return Settlement
+     * @throws InvalidArgumentException
+     */
+    public function resolveDispute(int $settlementId, int $adminId, string $resolution, string $newStatus): Settlement
+    {
+        $settlement = Settlement::findOrFail($settlementId);
+
+        // 驗證當前狀態
+        if ($settlement->status !== 'disputed') {
+            throw new InvalidArgumentException(
+                "只能解決爭議中的結算單，當前狀態: {$settlement->status}"
+            );
+        }
+
+        // 驗證新狀態
+        $validStatuses = ['created', 'confirmed', 'paid', 'closed'];
+        if (!in_array($newStatus, $validStatuses)) {
+            throw new InvalidArgumentException(
+                "無效的新狀態: {$newStatus}，允許的狀態: " . implode(', ', $validStatuses)
+            );
+        }
+
+        // 驗證解決方案
+        if (empty(trim($resolution))) {
+            throw new InvalidArgumentException("解決方案不能為空");
+        }
+
+        if (strlen($resolution) > 2000) {
+            throw new InvalidArgumentException("解決方案不能超過 2000 字符");
+        }
+
+        // 更新狀態
+        $settlement->update([
+            'status' => $newStatus,
+            'dispute_resolution' => $resolution,
+        ]);
+
+        // 創建審計日誌
+        $this->createLog($settlement, $adminId, 'resolved', 'disputed', $newStatus, [
+            'resolution' => $resolution
+        ]);
+
+        // 發送通知給雙方
+        $this->sendDisputeResolvedNotification($settlement);
+
+        Log::info("SettlementService: 爭議已解決", [
+            'settlement_id' => $settlementId,
+            'admin_id' => $adminId,
+            'new_status' => $newStatus
+        ]);
+
+        return $settlement->fresh();
+    }
+
+    /**
+     * 發送結算單確認通知
+     */
+    private function sendSettlementConfirmedNotification(Settlement $settlement): void
+    {
+        try {
+            $this->notificationService->sendProfitSharingNotification(
+                $settlement->deviceOwner,
+                '結算單已確認',
+                "結算單 {$settlement->settlement_number} 已被場地主確認，請付款。",
+                route('settlements.show', $settlement->id)
+            );
+        } catch (\Exception $e) {
+            Log::error("SettlementService: 發送確認通知失敗", [
+                'settlement_id' => $settlement->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 發送已付款通知
+     */
+    private function sendSettlementPaidNotification(Settlement $settlement): void
+    {
+        try {
+            $this->notificationService->sendProfitSharingNotification(
+                $settlement->venueOwner,
+                '結算單已付款',
+                "結算單 {$settlement->settlement_number} 已被設備主標記為已付款，請確認收款。",
+                route('settlements.show', $settlement->id)
+            );
+        } catch (\Exception $e) {
+            Log::error("SettlementService: 發送付款通知失敗", [
+                'settlement_id' => $settlement->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 發送結案通知
+     */
+    private function sendSettlementClosedNotification(Settlement $settlement): void
+    {
+        try {
+            $this->notificationService->sendProfitSharingNotification(
+                $settlement->deviceOwner,
+                '結算單已結案',
+                "結算單 {$settlement->settlement_number} 已結案。",
+                route('settlements.show', $settlement->id)
+            );
+        } catch (\Exception $e) {
+            Log::error("SettlementService: 發送結案通知失敗", [
+                'settlement_id' => $settlement->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 發送爭議通知
+     */
+    private function sendDisputeNotification(Settlement $settlement, int $raisedBy): void
+    {
+        try {
+            // 通知對方
+            $otherParty = $raisedBy === $settlement->device_owner_id 
+                ? $settlement->venueOwner 
+                : $settlement->deviceOwner;
+
+            $this->notificationService->sendProfitSharingNotification(
+                $otherParty,
+                '結算單爭議',
+                "結算單 {$settlement->settlement_number} 有爭議提出，請查看。",
+                route('settlements.show', $settlement->id)
+            );
+
+            // TODO: 通知管理員
+        } catch (\Exception $e) {
+            Log::error("SettlementService: 發送爭議通知失敗", [
+                'settlement_id' => $settlement->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 發送爭議解決通知
+     */
+    private function sendDisputeResolvedNotification(Settlement $settlement): void
+    {
+        try {
+            // 通知雙方
+            foreach ([$settlement->deviceOwner, $settlement->venueOwner] as $user) {
+                $this->notificationService->sendProfitSharingNotification(
+                    $user,
+                    '爭議已解決',
+                    "結算單 {$settlement->settlement_number} 的爭議已解決。",
+                    route('settlements.show', $settlement->id)
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error("SettlementService: 發送爭議解決通知失敗", [
+                'settlement_id' => $settlement->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 獲取用戶的結算單列表
+     * 
+     * @param int $userId 用戶 ID
+     * @param array $filters 篩選條件
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getSettlementsByUser(int $userId, array $filters = [])
+    {
+        $query = Settlement::query()
+            ->with(['venue', 'deviceOwner', 'venueOwner'])
+            ->where(function ($q) use ($userId) {
+                $q->where('device_owner_id', $userId)
+                  ->orWhere('venue_owner_id', $userId);
+            });
+
+        // 狀態篩選
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // 角色篩選
+        if (!empty($filters['role'])) {
+            if ($filters['role'] === 'device_owner') {
+                $query->where('device_owner_id', $userId);
+            } elseif ($filters['role'] === 'venue_owner') {
+                $query->where('venue_owner_id', $userId);
+            }
+        }
+
+        // 期間篩選
+        if (!empty($filters['period_start']) && !empty($filters['period_end'])) {
+            $query->whereBetween('period_start', [
+                $filters['period_start'],
+                $filters['period_end']
+            ]);
+        }
+
+        // 排序
+        $query->orderBy('period_start', 'desc');
+
+        // 分頁
+        $perPage = $filters['per_page'] ?? 50;
+        return $query->paginate($perPage);
+    }
+}

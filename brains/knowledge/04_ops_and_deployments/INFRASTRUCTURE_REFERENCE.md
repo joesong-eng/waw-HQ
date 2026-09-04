@@ -23,8 +23,8 @@
 
 | 別名 | IP | 用途 | 專案 |
 |------|-----|------|------|
-| `yd47` | `129.146.0.47` | Member + iHub VPS | `win.tg25.win`、`ihub.tg25.win` |
-| `ihub` | `129.146.0.47` | iHub 專用別名（同 yd47） | `ihub.tg25.win` |
+| `yd47` | `129.146.103.177` | Member + iHub VPS | `win.tg25.win`、`ihub.tg25.win` |
+| `ihub` | `129.146.103.177` | iHub 專用別名（同 yd47） | `ihub.tg25.win` |
 | `yd174` | `129.153.116.174` | Owner VPS | `iot.tg25.win` |
 | `infra` | `141.148.165.50` | Infra VPS（DB + MQTT） | `api.tg25.win` |
 | `db` | `141.148.165.50` | Infra DB 別名（同 infra） | MySQL、Redis |

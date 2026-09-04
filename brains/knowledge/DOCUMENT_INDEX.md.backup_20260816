@@ -1,0 +1,285 @@
+# 知識庫文件索引 (Neural & Hierarchical Index)
+
+> **最後更新**：2026-06-09  
+> **編寫角色**：HQ (Hera)  
+> **索引原則**：大分類在最外圍，檔名自解釋，拒絕流浪與信息碎片化。
+
+---
+
+## 🔴 最高指導規範 (MANDATORY STANDARDS)
+
+在進行任何代碼修改前，所有 Agent 必須先閱讀對應領域的最高指導文件：
+
+| 規範文件 | 規範內容 | 適用範圍 | 違反後果 |
+| :--- | :--- | :--- | :--- |
+| `02_protocols_and_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md` 🔴 | 變數命名、API Header、MQTT Topic 與 Payload 唯一真理 | 所有系統 | 變數或主題不一致，造成系統通訊與金流中斷 |
+| `02_protocols_and_standards/WEBSOCKET_CHANNEL_STANDARD.md` 🔴 | WebSocket 頻道與事件類型標準 | Member / iHub | 前端無法收到即時事件，用戶體驗中斷 |
+| `02_protocols_and_standards/QRCODE_FORMAT_STANDARD.md` | QR Code URL 格式與參數名稱 | iHub / Alliance / Member | 用戶無法掃碼，服務完全中斷 |
+| `NAMING_AUTHORITY.md` 🔴 | 全系統名稱定義來源唯一真理索引 | 所有系統 | 識別碼混用，資料關聯錯誤 |
+
+---
+
+## 📂 頂級分類結構 (Top-Level Directories)
+
+### 01_agent_governance_rules/ (Agent 治理規章)
+定義 AI Agent 的執行協議、職責保護、軍令與文檔防流浪機制：
+- **[L1]** `README.md` (已完成) — Agent 治理規章導覽與目錄說明。
+- **[L1]** `AGENT_EXECUTION_PROTOCOL.md` (已完成) — 禁止試錯、診斷流程、執行前三確認。
+- **[L1]** `AGENT_RESPONSIBILITY_BOUNDARIES.md` (已完成) — 職責邊界、禁止跨專案修改。
+- **[L1]** `AGENT_COLLABORATION_PROTOCOL.md` (已完成) — HQ Message Hub 用法、知識沉澱規範。
+- **[L2]** `TASK_ROUTING_AND_COMPLETION.md` (已完成) — 任務路由與完成驗收標準.
+- **[L1]** `INTERACTION_COMMON_SENSE.md` (已完成) — 人機交互與 Agent 溝通通識。
+- **[L1]** `CRITICAL_NO_TRIAL_AND_ERROR.md` (已完成) — 核心軍令：禁止試錯式修改程式碼原則。
+- **[L2]** `DOCUMENT_CONSISTENCY_RULES.md` (已完成) — 文檔一致性與命名標準規範。
+- **[L4]** `FILE_REGISTRATION_SYSTEM.md` (已完成) — 文件註冊與三層保護防流浪機制說明。
+- **[L3]** `DB_MIGRATION_WORKFLOW.md` (已完成) — 資料庫變更與部署審批規範。
+- **[L5]** `SYSTEM_FIX_PLAN_20260528.md` (已完成) — 全系統五大矛盾修復計劃。
+- **[L5]** `PHASED_ROLLOUT_PLAN_20260528.md` (已完成) — 全系統矛盾修復分階段割接計劃。
+
+### 02_protocols_and_standards/ (協定與標準)
+全系統底層通訊、硬體 SDK 與 Payload 格式的唯一強制性標準：
+- **[L3]** `TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md` (已完成) — 變數命名、Port、Header、Topic 與 Payload 標準。
+- **[L3]** `WEBSOCKET_CHANNEL_STANDARD.md` (已完成) — WebSocket 頻道與事件唯一真理。
+- **[L3]** `QRCODE_FORMAT_STANDARD.md` (已完成) — QR Code 格式唯一真理。
+- **[L3]** `ESP32_COMMON_SDK_SPEC.md` (已完成) — ESP32 共用核心 SDK 技術規格與分工標準。
+- **[L?]** `HARDWARE_PULSE_MAPPING.md` (待補充) — 脈衝轉換與硬體訊號映射。
+- **[L?]** `SIGNAL_FLOW_MONITOR.md` (待補充) — 信號流監控與可視化設計。
+- **[L?]** `DB_SCHEMA_WAW2_DELTA.md` (已完成) — WAW 2.0 資料庫增量更新規格（DDL），Ina 設計，HQ 批准。
+
+### 03_system_architecture_designs/ (系統架構設計)
+系統整體解耦、人與物物理拆分及過渡割接方案：
+- **[L3]** `WAW_2.0_ARCHITECTURE_SPEC.md` (已完成) — WAW 2.0 事件平台核心架耦規格書。
+- **[L3]** `V9_SYSTEM_SPLITTING_DESIGN.md` (已完成) — waw-business 與 waw-iot 雙子專案物理拆分設計書。
+- **[L3]** `SYSTEM_ENTRYPOINTS_AND_DOMAINS.md` (已完成) — 全系統網站入口、幕後服務入口、域名與使用對象分類。
+- **[L3]** `REALTIME_MONITORING_PAGE_FLOW.md` (已完成) — `/realtime` 初始設備列表、Reverb 即時更新、Internal broadcast 與資料來源分工規範。
+- **[L3]** `DATABASE_MIGRATION_STRATEGY.md` (已完成) — WAW 2.0 數據過渡與雙寫策略，Ina & Sophie 已實施（2026-06-12）。
+
+### 04_ops_and_deployments/ (運維與部署)
+主機配置、SSH 別名、自動化部署與緊急回滾指南：
+- **[L4]** `INFRASTRUCTURE_REFERENCE.md` (已完成) — SSH 別名表、DB 架構、Nginx 配置。
+- **[L4]** `DEPLOYMENT_GUIDE.md` (已完成) — 各專案部署指令與緊急回滾。
+- **[L4]** `V9_OPS_AUTOMATION.md` (已完成) — MCP 工具與自動化運維指令指南。
+- **[L4]** `LOCAL_DEV_CUSTOMIZATIONS.md` (已完成) — 本地開發環境客製化設定。
+- **[L4]** `HQ_DEPLOYMENT_SOP.md` (已完成) — HQ 部署與自動化維護標準作業程序。
+- **[L4]** `MEMBER_DEPLOYMENT_GUIDE.md` (已完成) — 會員端後台系統部署指南。
+- **[L4]** `IHUB_APK_BUILD_TOOL.md` (已完成) — iHub APK 自動化建置工具指南。
+- [scripts/README.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/scripts/README.md) 🟢 (已更新) — HQ 核心維護腳本與全自動任務分發觸發工具手冊。
+- **[L4]** `LAUNCHD_AGENT_ARCHITECTURE.md` (已完成) — launchd Agent 架構設計原則與 com.hq.all_agents 廢棄記錄。
+
+### 05_product_and_business_flows/ (產品與業務流)
+依業務域分離的產品需求與底層交互流程細則：
+
+#### 1. kiosk_v0_exchange/ (兌幣機業務域)
+- **[L3]** `KIOSK_EXCHANGE_FLOW.md` (已完成) — 兌幣機物理與金流交互流程規格書。
+- **[L3]** `KIOSK_IDENTIFICATION_SYSTEM.md` (已完成) — 兌幣機識別碼與綁定體系。
+- **[L3]** `KIOSK_UX_AND_SCREEN_DESIGN.md` (已完成) — 兌幣機 UI 與三螢幕顯示設計規範。
+- **[L3]** `KIOSK_ENGINEERING_DASHBOARD.md` (已完成) — 兌幣機工程測試看板設計。
+
+#### 2. game_v0_arcade/ (遊戲機業務域)
+- **[L3]** `GAME_V3_CORE_SPECIFICATION.md` (已完成) — 遊戲機 3.0 系統架構與業務流程規格書。
+- **[L3]** `GAME_V0_FLOW_AND_SESSION.md` (已完成) — 遊戲機開分與會話生命週期流程。
+- **[L3]** `DEVICE_IDENTIFICATION_SYSTEM.md` (已完成) — 遊戲機設備識別系統。
+- **[L3]** `REDEMPTION_VENDING_ARCHITECTURE.md` (已完成) — 彩票/代幣雙軌資產與販賣機控制架構。
+
+---
+
+## 根目錄文件
+
+| 文件 | 說明 | 狀態 |
+|------|------|------|
+| `DOCUMENT_INDEX.md` | 本文檔：知識庫完整文件索引 | 已啟用 |
+| `README.md` | 知識庫總目錄與核心規則說明 | 已啟用 |
+| `NAMING_AUTHORITY.md` | 全系統名稱定義來源唯一真理索引 | 已啟用 |
+| `NEURAL_LINKS_PROGRESS.md` | 文件神經連結建置進度追蹤 | 已啟用 |
+
+---
+
+## 引用與防孤兒協議
+1. **新建文件**：必須先在對應目錄大類註冊，填寫說明，並在文檔末尾附上「## 🔗 文件神經連結」。
+2. **修訂文件**：同步檢查強關聯文件，避免信息分叉。
+
+## 🔧 Message Hub v2.0 核心模組
+
+| 檔案 | 說明 | 行數 |
+|------|------|------|
+| ~~`scripts/message_hub_v2/__main__.py`~~ | 主程式入口（v2 HTTP 架構，已廢棄） | ❌ |
+| ~~`scripts/message_hub_v2/config.py`~~ | Agent 路由配置（已廢棄） | ❌ |
+| ~~`scripts/message_hub_v2/router.py`~~ | 事件路由引擎（已廢棄） | ❌ |
+| ~~`scripts/message_hub_v2/task_manager.py`~~ | 任務管理模組（已廢棄） | ❌ |
+| ~~`scripts/message_hub_v2/http_server.py`~~ | HTTP API 伺服器（已廢棄） | ❌ |
+| ~~`scripts/message_hub_v2/redis_listener.py`~~ | Redis Pub/Sub 監聽（已廢棄） | ❌ |
+
+> ⚠️ **Firmware Agent 分工**：Fio→IOTkiosk_v0 (kiosk/+)，Coli→IOTwawS3 (device/+)
+
+## 🔗 Agent 通訊協定
+
+| 文件 | 說明 | 狀態 |
+|------|------|------|
+| `01_agent_governance/MESSAGE_HUB_PROTOCOL.md` 🟢 | **【權威】** HQ 發任務唯一正確流程（v3.0 Redis Pub/Sub） | ✅ 現行版本 |
+| `01_agent_governance/CODEX_EXEC_GUIDE.md` 🟢 | Codex 執行指南與軍令 | ✅ 已啟用 |
+| `01_agent_governance/MESSAGE_HUB_V2_DEPLOYMENT.md` 🟡 | Message Hub 部署細節（launchd / agents_supervisor），發任務方式已過時 | ⚠️ 部署參考用 |
+| `01_agent_governance/MESSAGE_HUB_V2.md` ❌ | Message Hub v2.0 HTTP-only 架構說明 | ❌ 廢棄（2026-06-09） |
+| `01_agent_governance/MESSAGE_HUB_V2_STATUS.md` ❌ | Message Hub v2.0 狀態報告 | ❌ 廢棄（2026-06-09） |
+
+
+## 📢 公用文件（所有 Agent 可見）
+
+| 文件 | 位置 | 說明 |
+|------|------|------|
+| `SHARED_MESSAGE_HUB_GUIDE.md` 🟢 | `../SHARED_MESSAGE_HUB_GUIDE.md` | HQ Message Hub 使用指南（Agent 版） |
+| `scripts/README.md` 🟢 | [scripts/README.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/scripts/README.md) | HQ 核心維護與全自動任務分發觸發工具手冊 |
+
+
+## ⚠️ 已廢棄的通訊方式
+
+| 文件 | 說明 | 狀態 |
+|------|------|------|
+| `01_agent_governance/CHAT_BRIDGE_DEPRECATION.md` ❌ | Chat Bridge 廢棄公告 | 已於 2026-06-06 廢棄 |
+
+---
+
+## 🤖 自動化工具設計（Agent Orchestration）
+
+| 文件 | 說明 | 狀態 |
+|------|------|------|
+| `01_agent_governance/AUTOFLOW_CONTEXT_STORE_DESIGN.md` | **【必讀共識】** HQ 分身機制、context store、禁止行為、Agent 回報腳本 | ✅ 2026-06-09 更新 |
+| `01_agent_governance/CLI_AGENT_DISPATCH_DESIGN.md` | **【設計基準】** 任務驅動 CLI Agent、Redis Streams 持久派工、Telegram 非同步回報 | ✅ 2026-08-01 建立 |
+
+---
+
+## 🛠️ HQ 分身相關檔案
+
+> ⚠️ **架構更新（2026-06-09）**：HQ 分身不再使用獨立 plist，改由 `com.hq.agents.supervisor` 統一管理。
+
+| 檔案 | 說明 | 狀態 |
+|------|------|------|
+| ~~`scripts/hq_redis_listener.py`~~ | HQ 分身監聽器（已由 `hq_gateway.py` 取代，此檔案不再需要） | ❌ 廢棄 |
+| `skills/hq_ops/analyse_agent_report.md` | HQ 子代理 skill，分析 Agent 回報並決策下一步 | ✅ 2026-06-08 建立 |
+| `skills/hq_ops/init_thread.md` | 初始化 context store thread | ✅ 2026-06-08 建立 |
+| `skills/hq_ops/message_hub_operations.md` | **【完整 Skill】** Message Hub 全操作手冊：發任務、諮詢、補充、重做、確認、查回報、故障排除 | ✅ 2026-06-09 建立 |
+| `skills/hq_ops/task_orchestration.md` | **【強制 Skill】** Consultation → Approval → Execution 的兩階段派工與驗收協議 | ✅ 2026-08-01 建立 |
+| `.kiro/specs/hq-gateway/requirements.md` | HQ Gateway 功能需求：取代 HQReportThread，自動決策諮詢回覆與實作驗收 | ✅ 2026-06-10 建立 |
+| `.kiro/specs/hq-gateway/design.md` | HQ Gateway 架構設計：ContextStore / DecisionEngine / GatewayListener 三 class | ✅ 2026-06-10 建立 |
+| `.kiro/specs/hq-gateway/tasks.md` | **【給 Agent】** HQ Gateway 實作清單，5 個 Task，含驗收標準 | ✅ 2026-06-10 建立 |
+| ~~`~/Library/LaunchAgents/com.hq.agent.hq.plist`~~ | ~~HQ 分身獨立 launchd~~ | ❌ 不需要，supervisor 統一接管 |
+| `scripts/agents_supervisor.py` | **純函式庫**：提供 AGENTS、execute_task 等共用函式，由 `hq_gateway.py` import | ✅ 函式庫 |
+| `scripts/hq_gateway.py` | **現行核心**：統一監聽所有 Agent 頻道、LLM 決策、context store 寫入 | ✅ 現役核心 |
+| `01_agent_governance/HQ_AUTOFLOW.md` | **HQ Autoflow 完整文件**：架構、SOP、設計決策、維運指令、歷史演進 | ✅ 2026-06-10 |
+| `~/Library/LaunchAgents/com.hq.agents.supervisor.plist` | supervisor launchd 常駐設定 | ✅ 現役 |
+| `scripts/start_all_agents.sh` | 舊版啟動腳本（保留備用，功能已由 supervisor 取代） | ⚠️ 備用 |
+| ~~`~/Library/LaunchAgents/com.hq.all_agents.plist`~~ | ~~開機自動跑 start_all_agents.sh~~ | ❌ 2026-06-09 廢棄（TCC 126）|
+
+---
+
+## 🧠 Neural Registry Auto-Backfill (2026-06-22)
+> 僅根據檔名與路徑補登記；未讀取文件正文。用途是消除流浪文件，並將預設讀取策略收斂為 On-Demand/Never。
+
+| Level | 文件 | 類型 | Context 策略 |
+| :---: | :--- | :--- | :--- |
+| **L5** | `AUDIT_REPORT_20260527.md` | Unclassified | Never / Archive Only — 待後續整理，預設 Never |
+| **L5** | `MEMORY_SYSTEM_MAP.md` | Unclassified | Never / Archive Only — 待後續整理，預設 Never |
+| **L1** | `governance/02_execution_policy.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L1** | `governance/03_document_lifecycle.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L1** | `governance/CROSS_SESSION_MEMORY.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L1** | `governance/DELEGATE_CONTEXT_TEMPLATE.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L1** | `governance/NEURAL_CONTEXT_GOVERNANCE_PLAN.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L1** | `governance/TASK_HANDOFF_CHECKLIST.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L5** | `history/2026-04-14_architecture_refactor_log.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/2026-06-10_consult_review_refactor.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/2026-06-10_remaining_issues.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/20260421_SUB_ENGINE_MIGRATION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/CLEANUP_20260424.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/CLEANUP_20260526_SUMMARY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/CLEANUP_20260608_SUMMARY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/CONSOLIDATION_SUMMARY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/DAILY_LOG_20260514.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INCIDENT_20260427_INFRA_LISTENER.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INCIDENT_20260503_ESCROW_404.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INCIDENT_20260508_IHUB_QRCODE_500.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INCIDENT_20260508_SIMULATOR_WEBSOCKET.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INCIDENT_20260525_GAME_CREDIT_MQTT_TOPIC_MISMATCH.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INCIDENT_20260525_GAME_DEVICE_INACTIVE.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INCIDENT_20260525_TOKEN_CONFUSION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INCIDENT_20260526_DEVICE_STATUS_AUTO_RESET.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/INDEX.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260501_PHASE5_TIMEOUT.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260510_SIM_BILL_DEBUGGING.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260511_IHUB_BUILD_DEPLOY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260512_CREDIT_CUMULATIVE_VS_DELTA.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260513_HQ_BYPASSED_AGENT_FLOW.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260513_QRCODE_BROKE_BILL_CHAIN.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260525_HQ_DIAGNOSTIC_EFFICIENCY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260526_ALPINE_ARRAY_REACTIVITY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/LESSON_20260610_GATEWAY_TIMEOUT_AND_JSON.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/MIGRATION_IHUBAPP_20260608.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/OPTIMIZATION_SUMMARY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/REORGANIZATION_SUMMARY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/SYNC_20260508_CONSISTENCY_CHECK.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/TASK_20260424_161144_summary.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/TASK_20260508_MEMORY_CLEANUP_PLAN.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/TASK_20260508_QUICK_REFERENCE_VERIFICATION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/TASK_20260514_GAME_V0_PROGRESS.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/TASK_20260514_MINA_FAQ_RESOLUTION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/TASK_20260515_GAME_V0_E2E_TEST.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/TASK_20260515_GAME_V0_FEASIBILITY_ASSESSMENT.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/TASK_20260525_001_QRCODE_UNIFICATION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/2026-04-14_architecture_refactor_log.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/20260421_SUB_ENGINE_MIGRATION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/CLEANUP_20260424.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/CONSOLIDATION_SUMMARY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/DAILY_LOG_20260514.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/INCIDENT_20260427_INFRA_LISTENER.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/INCIDENT_20260503_ESCROW_404.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/INCIDENT_20260508_IHUB_QRCODE_500.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/INCIDENT_20260508_SIMULATOR_WEBSOCKET.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/LESSON_20260501_PHASE5_TIMEOUT.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/LESSON_20260510_SIM_BILL_DEBUGGING.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/OPTIMIZATION_SUMMARY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/REORGANIZATION_SUMMARY.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/TASK_20260424_161144_summary.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/TASK_20260508_QUICK_REFERENCE_VERIFICATION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/TASK_20260514_GAME_V0_PROGRESS.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/TASK_20260514_MINA_FAQ_RESOLUTION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/TASK_20260515_GAME_V0_E2E_TEST.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/TASK_20260515_GAME_V0_FEASIBILITY_ASSESSMENT.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/TASK_20260525_001_QRCODE_UNIFICATION.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/archive/hq_listener_alerts.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L5** | `history/hq_listener_alerts.md` | Archive | Never / Archive Only — 歷史/封存，預設 Never，僅追溯時讀取 |
+| **L1** | `knowledge/01_agent_governance/AGENT_STARTUP_PROTOCOL.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L1** | `knowledge/01_agent_governance/ALLIE_COMMUNICATION_GUIDE.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L5** | `knowledge/01_agent_governance/INCIDENT_LOG_20260617.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/01_agent_governance/INCIDENT_LOG_20260618.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L1** | `knowledge/01_agent_governance/SPECIFICATION_UPDATE_20260617.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L1** | `knowledge/01_agent_governance/USER_MIGRATION_CLEANUP_PLAN_20260618.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
+| **L3** | `knowledge/02_protocols_and_standards/PULSE_BASED_DATA_FLOW.md` | Spec | On-Demand — 技術/協議標準，On-Demand |
+| **L3** | `knowledge/02_protocols_and_standards/USER_IDENTITY_VALIDATION_STANDARD.md` | Spec | On-Demand — 技術/協議標準，On-Demand |
+| **L3** | `knowledge/02_technical_standards/DATABASE_CONNECTION_AND_GOVERNANCE.md` | Spec | On-Demand — 技術/協議標準，On-Demand |
+| **L3** | `knowledge/03_system_architecture/REVENUE_INTEGRATION.md` | Architecture | On-Demand — 架構設計，On-Demand |
+| **L3** | `knowledge/03_system_architecture_designs/MULTI_CHANNEL_DISPATCH_ARCHITECTURE.md` | Architecture | On-Demand — 架構設計，On-Demand |
+| **L4** | `knowledge/04_ops_and_deployments/WAW2_PULSE_INTEGER_IMPLEMENTATION_LOG_20260620.md` | Implementation | Never / Archive Only — 運維/部署實作，On-Demand |
+| **L4** | `knowledge/04_ops_and_deployments/WAW2_PULSE_INTEGER_INTEGRATION_20260620.md` | Implementation | Never / Archive Only — 運維/部署實作，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/WAW2_MIGRATION_FEASIBILITY.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/device_connectivity/DEVICE_CONNECTION_STATUS_FLOW.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/DESIGN_FINALIZED_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/INA_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/MINA_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/MINA_IMPLEMENTATION_COMPLETE_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/SOPHIE_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/TASK_INA_DB_AND_INFRA_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/TASK_MINA_MEMBER_IMPLEMENTATION_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/TASK_SOPHIE_OWNER_VERIFY_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_product_and_business_flows/waw2_migration/REVENUE_DATA_FLOW_SPEC.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260615.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260616.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260616_COMPLETED.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260616_FINAL.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260617.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L3** | `knowledge/06_alliance_system/MAINTENANCE_BEST_PRACTICES.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/06_alliance_system/QUICK_DIAGNOSIS_SOP.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/06_alliance_system/SEVEN_CRITICAL_FIXES.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L5** | `knowledge/06_alliance_system/TASK_LOG_20260620.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L3** | `knowledge/06_alliance_system/TROUBLESHOOTING_GUIDE.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L5** | `memory/LESSON_AGENT_SECURITY_THINKING.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `memory/LESSON_DOCUMENTATION_CONFLICT_RESOLUTION.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L2** | `registry/DISPATCH_BOARD.md` | Registry | On-Demand — 介面/派工註冊，On-Demand |
+| **L2** | `registry/INTERFACE_INDEX.md` | Registry | On-Demand — 介面/派工註冊，On-Demand |

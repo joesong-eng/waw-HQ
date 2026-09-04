@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Agent 部署腳本範本
+
+set -e
+
+AGENT_NAME="Owner"
+AGENT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEPLOY] $*"
+}
+
+usage() {
+    echo "用法: $0 <description>"
+    echo "  <description>: 此次部署的簡要描述 (例如: 'feat: add new API endpoint')"
+    exit 1
+}
+
+if [ "$#" -eq 0 ]; then
+    usage
+fi
+
+DEPLOY_DESC="$1"
+
+log "開始部署 Agent: ${AGENT_NAME} (${DEPLOY_DESC})"
+
+# --- 部署邏輯 --- 
+# 這裡填寫實際的部署指令，例如：
+# 1. Git commit & push
+# 2. SSH 到目標伺服器
+# 3. Git pull
+# 4. 執行服務重啟命令 (例如: systemctl restart <service_name>)
+
+# 範例： Git Commit & Push (請自行修改)
+# log "Commiting changes..."
+# git add .
+# git commit -m "${DEPLOY_DESC}"
+# git push origin main
+
+# 範例： SSH & Deploy to VPS (請自行修改)
+# VPS_USER="your_user"
+# VPS_HOST="your_host"
+# VPS_PORT="your_port"
+# log "Connecting to VPS ${VPS_HOST}..."
+# ssh -p ${VPS_PORT} ${VPS_USER}@${VPS_HOST} "cd ${AGENT_DIR} && git pull && sudo systemctl restart ${AGENT_NAME}.service"
+
+log "部署腳本執行完成（請在此處填寫實際部署指令）"
+log "請確認已手動執行所有必要的部署步驟。"
+
+exit 0

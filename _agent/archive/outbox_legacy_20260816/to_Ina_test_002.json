@@ -1,0 +1,1 @@
+{"type": "task", "task_id": "test_002", "to_agent": "Ina", "priority": "high", "description": "請檢查基礎設施網路連線並確認 Redis Pub/Sub 節點回應。"}

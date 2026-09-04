@@ -1,7 +1,7 @@
 # 名稱定義來源表 (Naming Authority)
 
-> **版本**: 2.0.0
-> **日期**: 2026-05-11 (UTC+8)
+> **版本**: 2.1.0
+> **日期**: 2026-08-03 (UTC+8)
 > **維護者**: HQ（唯一寫入權）
 
 ---
@@ -78,6 +78,8 @@
 | `waw_member_production.member_wallets` | `05_product_and_business_flows/game_v0/05_product_and_business_flows/game_v0_arcade/GAME_V0_FLOW_AND_SESSION.md` | yd47（Member DB） |
 | `waw_member_production.wallet_transactions` | `05_product_and_business_flows/game_v0/05_product_and_business_flows/game_v0_arcade/GAME_V0_FLOW_AND_SESSION.md` | yd47（Member DB） |
 | `iotv9.venues` | `05_product_and_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md` | infra（Owner DB） |
+| `iotv9.device_deployments` | `02_technical_standards/DB_SCHEMA_WAW2_DELTA.md` | infra（Owner DB） |
+| `iotv9.device_transactions` | `02_technical_standards/DB_SCHEMA_WAW2_DELTA.md` | infra（Owner DB） |
 
 ### 遊戲機識別碼（game_v0 專用）
 
@@ -109,6 +111,38 @@
 
 ---
 
+## 術語統一化與命名變更批准方案 (Phase 1)
+
+> **批准日期**: 2026-08-03
+> **適用狀態**: 🟢 已核准實施。所有 Agent 必須配合此命名標準進行代碼與資料庫設計。
+
+為解決 `store` / `venue` 與 `device` / `machine` 在程式碼與資料庫設計間的混淆，HQ 正式批准 Phase 1 術語統一方案：
+
+### 1. 場地命名 (Venue)
+* **唯一標準**: 統一使用 `venue`（不再使用 `store`）。
+* **資料庫**: 
+  * 實體表名為 `iotv9.venues`。
+  * 關聯表中的外鍵一律命名為 `venue_id`（取代原先設計的 `store_id`）。
+  * 相關分成欄位命名為 `venue_owner_id`、`venue_owner_share`、`venue_owner_share_amount`。
+* **程式碼**: 變數、API 參數、類別屬性一律使用 `venue` / `venue_id`。
+
+### 2. 設備命名 (Device vs Machine)
+* **唯一標準**: **Phase 1 期間一律命名為 `device`**（包括資料庫表名、欄位名與程式碼變數）。
+* **資料庫**:
+  * 實體表名為 `iotv9.devices`。
+  * 關聯表一律在 Phase 1 命名為 `device_deployments` 與 `device_transactions`（取代原設計的 `machine_deployments` 與 `machine_transactions`）。
+  * 關聯表中的外鍵一律命名為 `device_id`（取代原設計的 `machine_id`）。
+  * 分成欄位命名為 `owner_share` 與 `owner_share_amount`（取代原設計的 `machine_owner_share_amount` 等）。
+* **遷移 Phase 2 預告**: 待實體機器資產大遷移（`machines` 表正式就緒）後，才會在 Phase 2 全面升級為 `machine` / `machine_id`。在此之前，任何混用均屬違規。
+
+### 3. 機主命名 (Owner)
+* **唯一標準**: 在設備上下文（Device Context）中，設備所有者（機主）統一命名為 `owner_id`（取代 `device_owner_id`）。
+* **資料庫**:
+  * `iotv9.devices` 表中機主欄位統一為 `owner_id`。
+  * `device_transactions` 表中，場地主與機主共存時，場地主為 `venue_owner_id`，機主為 `owner_id`。
+
+---
+
 ## 已知文件不一致（待修正）
 
 | 文件 | 問題 | 正確值 | 查證來源 |
@@ -126,7 +160,7 @@
 
 ---
 
-*維護者：HQ | 建立：2026-05-11 | 版本：2.0.0*
+*維護者：HQ | 建立：2026-05-11 | 版本：2.1.0*
 
 ---
 

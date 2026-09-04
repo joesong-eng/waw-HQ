@@ -22,30 +22,30 @@ ALTER TABLE devices
 ## 2. 新建核心表 (CREATE)
 
 ```sql
--- 3. 新建 machine_deployments (機台部署歷史軌跡表)
-CREATE TABLE machine_deployments (
+-- 3. 新建 device_deployments (機台部署歷史軌跡表 - Phase 1)
+CREATE TABLE device_deployments (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  machine_id BIGINT UNSIGNED NOT NULL,
-  store_id BIGINT UNSIGNED NOT NULL,
+  device_id BIGINT UNSIGNED NOT NULL,
+  venue_id BIGINT UNSIGNED NOT NULL,
   status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
   deployed_at DATETIME NOT NULL,
   removed_at DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_machine_id (machine_id),
-  INDEX idx_store_id (store_id)
+  INDEX idx_device_id (device_id),
+  INDEX idx_venue_id (venue_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4. 新建 machine_transactions (機台分潤分成固化交易流水表)
-CREATE TABLE machine_transactions (
+-- 4. 新建 device_transactions (機台分潤分成固化交易流水表 - Phase 1)
+CREATE TABLE device_transactions (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  machine_id BIGINT UNSIGNED NOT NULL,
-  store_id BIGINT UNSIGNED NOT NULL,
+  device_id BIGINT UNSIGNED NOT NULL,
+  venue_id BIGINT UNSIGNED NOT NULL,
   transaction_type VARCHAR(50) NOT NULL,
   total_amount DECIMAL(10,2) NOT NULL,
-  store_owner_id BIGINT UNSIGNED NOT NULL,
-  machine_owner_id BIGINT UNSIGNED NOT NULL,
-  store_owner_share_amount DECIMAL(10,2) NOT NULL,
-  machine_owner_share_amount DECIMAL(10,2) NOT NULL,
+  venue_owner_id BIGINT UNSIGNED NOT NULL,
+  owner_id BIGINT UNSIGNED NOT NULL,
+  venue_owner_share_amount DECIMAL(10,2) NOT NULL,
+  owner_share_amount DECIMAL(10,2) NOT NULL,
   system_cut_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

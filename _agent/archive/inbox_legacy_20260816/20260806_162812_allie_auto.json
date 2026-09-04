@@ -1,0 +1,8 @@
+{
+  "from_agent": "allie",
+  "task_id": "REPORT_20260806_CALIBRATE",
+  "consult_id": null,
+  "timestamp": "2026-08-06T08:28:12Z",
+  "report_file": "_agent/REPORT_20260806_CALIBRATE.md",
+  "report": "# MQTT Topic Standard (WAW IoT)\n\n## Topic Structure\nwaw/v1/{site_id}/{device_type}/{device_id}/{action}\n\n- site_id: 營運站點 ID\n- device_type: 裝置類型 (e.g., kiosk, scanner)\n- device_id: 裝置流水號\n- action: 動作名稱 (e.g., status, event, command)\n\n## QoS Levels\n- 0: At most once\n- 1: At least once (Default for command)\n- 2: Exactly once\n"
+}

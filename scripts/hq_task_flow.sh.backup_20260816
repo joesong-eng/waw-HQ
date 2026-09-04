@@ -1,0 +1,69 @@
+#!/bin/bash
+# HQ 派工腳本 — 極簡檔案版
+# 用法：./scripts/hq_task_flow.sh task <agent> <task_id> "<描述>" [priority]
+# 無需 Redis，純寫檔到 Agent inbox
+
+set -e
+
+HQ_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+TASK_LOG="${HQ_DIR}/_agent/task_flow.log"
+WORKDIR_MAP="${HQ_DIR}/config/agent_workdir_map.json"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "${TASK_LOG}"
+}
+
+agent_work_dir() {
+    local agent="$1"
+    [ -f "${WORKDIR_MAP}" ] || { log "❌ 找不到 agent_workdir_map.json"; return 1; }
+    python3 - "${WORKDIR_MAP}" "${agent}" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as fh:
+    print(json.load(fh)['agents'].get(sys.argv[2].lower(), ''))
+PY
+}
+
+send_task() {
+    local agent="$1"
+    local task_id="$2"
+    local description="$3"
+    local priority="${4:-normal}"
+
+    local target_dir
+    target_dir="$(agent_work_dir "${agent}")" || return 1
+    [ -n "${target_dir}" ] && [ -d "${target_dir}" ] || {
+        log "❌ 未知或不存在的 Agent 工作目錄: ${agent}"
+        return 1
+    }
+
+    local target_inbox="${target_dir}/_agent/inbox/${task_id}.json"
+    [ ! -e "${target_inbox}" ] || { log "❌ 拒絕覆蓋既有工單: ${target_inbox}"; return 1; }
+
+    mkdir -p "$(dirname "${target_inbox}")"
+    python3 - "${task_id}" "${agent}" "${priority}" "${description}" > "${target_inbox}" <<'PY'
+import json, sys
+print(json.dumps({
+    "task_id":     sys.argv[1],
+    "to_agent":    sys.argv[2],
+    "priority":    sys.argv[3],
+    "description": sys.argv[4],
+    "status":      "pending",
+    "created_at":  __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+}, ensure_ascii=False, indent=2))
+PY
+
+    log "✅ 工單已派發 → ${agent}: ${task_id}"
+    log "   路徑: ${target_inbox}"
+}
+
+COMMAND="${1:-}"; shift || true
+case "${COMMAND}" in
+    task)
+        [ $# -ge 3 ] || { echo "用法: $0 task <agent> <task_id> \"<描述>\" [priority]"; exit 1; }
+        send_task "$1" "$2" "$3" "${4:-normal}"
+        ;;
+    *)
+        echo "用法: $0 task <agent> <task_id> \"<描述>\" [priority]"
+        exit 1
+        ;;
+esac

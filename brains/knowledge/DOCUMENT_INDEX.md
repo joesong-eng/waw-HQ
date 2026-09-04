@@ -52,14 +52,17 @@
 - **[L3]** `V9_SYSTEM_SPLITTING_DESIGN.md` (已完成) — waw-business 與 waw-iot 雙子專案物理拆分設計書。
 - **[L3]** `SYSTEM_ENTRYPOINTS_AND_DOMAINS.md` (已完成) — 全系統網站入口、幕後服務入口、域名與使用對象分類。
 - **[L3]** `REALTIME_MONITORING_PAGE_FLOW.md` (已完成) — `/realtime` 初始設備列表、Reverb 即時更新、Internal broadcast 與資料來源分工規範。
+- **[L3]** `DATA_MONITORING_DASHBOARDS.md` (已完成) — 所有數據流監控頁面總覽：MQTT Terminal、Realtime Dashboard、Kiosk Engineering、Hardware Center。
 - **[L3]** `DATABASE_MIGRATION_STRATEGY.md` (已完成) — WAW 2.0 數據過渡與雙寫策略，Ina & Sophie 已實施（2026-06-12）。
 
 ### 04_ops_and_deployments/ (運維與部署)
 主機配置、SSH 別名、自動化部署與緊急回滾指南：
 - **[L4]** `INFRASTRUCTURE_REFERENCE.md` (已完成) — SSH 別名表、DB 架構、Nginx 配置。
 - **[L4]** `DEPLOYMENT_GUIDE.md` (已完成) — 各專案部署指令與緊急回滾。
+- **[L4]** `MQTT_TERMINAL_DEPLOYMENT.md` (已完成) — MQTT Terminal 部署與驗證檢查清單。 (已完成) — 各專案部署指令與緊急回滾。
 - **[L4]** `V9_OPS_AUTOMATION.md` (已完成) — MCP 工具與自動化運維指令指南。
 - **[L4]** `LOCAL_DEV_CUSTOMIZATIONS.md` (已完成) — 本地開發環境客製化設定。
+- **[L4]** `LOCAL_DEVELOPMENT_CONSTRAINTS.md` (已完成) — 本機開發環境限制規範，禁止本機執行需要 vendor/ 的操作。
 - **[L4]** `HQ_DEPLOYMENT_SOP.md` (已完成) — HQ 部署與自動化維護標準作業程序。
 - **[L4]** `MEMBER_DEPLOYMENT_GUIDE.md` (已完成) — 會員端後台系統部署指南。
 - **[L4]** `IHUB_APK_BUILD_TOOL.md` (已完成) — iHub APK 自動化建置工具指南。
@@ -98,28 +101,39 @@
 1. **新建文件**：必須先在對應目錄大類註冊，填寫說明，並在文檔末尾附上「## 🔗 文件神經連結」。
 2. **修訂文件**：同步檢查強關聯文件，避免信息分叉。
 
-## 🔧 Message Hub v2.0 核心模組
+## 🔧 派工系統演進歷史
 
-| 檔案 | 說明 | 行數 |
-|------|------|------|
-| ~~`scripts/message_hub_v2/__main__.py`~~ | 主程式入口（v2 HTTP 架構，已廢棄） | ❌ |
-| ~~`scripts/message_hub_v2/config.py`~~ | Agent 路由配置（已廢棄） | ❌ |
-| ~~`scripts/message_hub_v2/router.py`~~ | 事件路由引擎（已廢棄） | ❌ |
-| ~~`scripts/message_hub_v2/task_manager.py`~~ | 任務管理模組（已廢棄） | ❌ |
-| ~~`scripts/message_hub_v2/http_server.py`~~ | HTTP API 伺服器（已廢棄） | ❌ |
-| ~~`scripts/message_hub_v2/redis_listener.py`~~ | Redis Pub/Sub 監聽（已廢棄） | ❌ |
+| 版本 | 時期 | 機制 | 文檔 | 狀態 |
+|------|------|------|------|------|
+| v1.0 | 2026-06 | HTTP + 檔案系統 | MESSAGE_HUB_V2.md | ❌ 已廢棄 |
+| v2.0 | 2026-06 | HTTP-only | MESSAGE_HUB_V2_STATUS.md | ❌ 已廢棄 |
+| v3.0 | 2026-06-09 | Redis Pub/Sub + supervisor | MESSAGE_HUB_PROTOCOL.md | ❌ 已廢棄 |
+| **v4.0** | **2026-08-16** | **純檔案系統** | **SIMPLE_FILE_DISPATCH_PROTOCOL.md** | **✅ 當前版本** |
 
-> ⚠️ **Firmware Agent 分工**：Fio→IOTkiosk_v0 (kiosk/+)，Coli→IOTwawS3 (device/+)
+### 當前使用（v4.0）
+- `01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md` 🟢 **【當前版本】** 純檔案系統派工協議
+- `scripts/hq_task_flow.sh` - HQ 派工腳本
+- `scripts/agent_report_to_hq_v2.sh` - Agent 回報腳本
+
+### 已廢棄（歷史參考）
+- `01_agent_governance/MESSAGE_HUB_PROTOCOL.md` ❌ v3.0 Redis Pub/Sub 架構（已廢棄 2026-08-16）
+- `01_agent_governance/MESSAGE_HUB_V2.md` ❌ v2.0 HTTP-only 架構（已廢棄 2026-06-09）
+- `01_agent_governance/MESSAGE_HUB_V2_STATUS.md` ❌ v2.0 狀態報告（已廢棄 2026-06-09）
+- `01_agent_governance/MESSAGE_HUB_V2_DEPLOYMENT.md` 🟡 部署細節參考（launchd 配置仍可參考）
+
 
 ## 🔗 Agent 通訊協定
 
 | 文件 | 說明 | 狀態 |
 |------|------|------|
-| `01_agent_governance/MESSAGE_HUB_PROTOCOL.md` 🟢 | **【權威】** HQ 發任務唯一正確流程（v3.0 Redis Pub/Sub） | ✅ 現行版本 |
+| `01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md` 🟢 | **【當前版本】** 純檔案系統派工協議（v4.0） | ✅ 現行版本 |
+| `01_agent_governance/AGENT_STARTUP_PROTOCOL.md` 🟢 | Agent 啟動安全協議 | ✅ 現行版本 |
 | `01_agent_governance/CODEX_EXEC_GUIDE.md` 🟢 | Codex 執行指南與軍令 | ✅ 已啟用 |
-| `01_agent_governance/MESSAGE_HUB_V2_DEPLOYMENT.md` 🟡 | Message Hub 部署細節（launchd / agents_supervisor），發任務方式已過時 | ⚠️ 部署參考用 |
-| `01_agent_governance/MESSAGE_HUB_V2.md` ❌ | Message Hub v2.0 HTTP-only 架構說明 | ❌ 廢棄（2026-06-09） |
-| `01_agent_governance/MESSAGE_HUB_V2_STATUS.md` ❌ | Message Hub v2.0 狀態報告 | ❌ 廢棄（2026-06-09） |
+| `01_agent_governance/MESSAGE_HUB_PROTOCOL.md` ❌ | v3.0 Redis Pub/Sub 架構（已廢棄 2026-08-16） | ⚠️ 歷史參考 |
+| `01_agent_governance/MESSAGE_HUB_V2_DEPLOYMENT.md` 🟡 | launchd 部署細節 | ⚠️ 部分參考 |
+| `01_agent_governance/MESSAGE_HUB_V2.md` ❌ | v2.0 HTTP-only 架構（已廢棄） | ❌ 廢棄 |
+| `01_agent_governance/MESSAGE_HUB_V2_STATUS.md` ❌ | v2.0 狀態報告（已廢棄） | ❌ 廢棄 |
+| `01_agent_governance/CHAT_BRIDGE_DEPRECATION.md` ❌ | Chat Bridge 廢棄公告 | ❌ 已於 2026-06-06 廢棄 |
 
 
 ## 📢 公用文件（所有 Agent 可見）
@@ -143,6 +157,7 @@
 | 文件 | 說明 | 狀態 |
 |------|------|------|
 | `01_agent_governance/AUTOFLOW_CONTEXT_STORE_DESIGN.md` | **【必讀共識】** HQ 分身機制、context store、禁止行為、Agent 回報腳本 | ✅ 2026-06-09 更新 |
+| `01_agent_governance/CLI_AGENT_DISPATCH_DESIGN.md` | **【設計基準】** 任務驅動 CLI Agent、Redis Streams 持久派工、Telegram 非同步回報 | ✅ 2026-08-01 建立 |
 
 ---
 
@@ -156,6 +171,7 @@
 | `skills/hq_ops/analyse_agent_report.md` | HQ 子代理 skill，分析 Agent 回報並決策下一步 | ✅ 2026-06-08 建立 |
 | `skills/hq_ops/init_thread.md` | 初始化 context store thread | ✅ 2026-06-08 建立 |
 | `skills/hq_ops/message_hub_operations.md` | **【完整 Skill】** Message Hub 全操作手冊：發任務、諮詢、補充、重做、確認、查回報、故障排除 | ✅ 2026-06-09 建立 |
+| `skills/hq_ops/task_orchestration.md` | **【強制 Skill】** Consultation → Approval → Execution 的兩階段派工與驗收協議 | ✅ 2026-08-01 建立 |
 | `.kiro/specs/hq-gateway/requirements.md` | HQ Gateway 功能需求：取代 HQReportThread，自動決策諮詢回覆與實作驗收 | ✅ 2026-06-10 建立 |
 | `.kiro/specs/hq-gateway/design.md` | HQ Gateway 架構設計：ContextStore / DecisionEngine / GatewayListener 三 class | ✅ 2026-06-10 建立 |
 | `.kiro/specs/hq-gateway/tasks.md` | **【給 Agent】** HQ Gateway 實作清單，5 個 Task，含驗收標準 | ✅ 2026-06-10 建立 |
@@ -281,3 +297,7 @@
 | **L5** | `memory/LESSON_DOCUMENTATION_CONFLICT_RESOLUTION.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
 | **L2** | `registry/DISPATCH_BOARD.md` | Registry | On-Demand — 介面/派工註冊，On-Demand |
 | **L2** | `registry/INTERFACE_INDEX.md` | Registry | On-Demand — 介面/派工註冊，On-Demand |
+
+
+
+

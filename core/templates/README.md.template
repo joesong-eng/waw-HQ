@@ -1,0 +1,34 @@
+# Agent: REPLACE_AGENT_NAME
+
+這個專案由 HQ 自動產生，用於運行 Agent：REPLACE_AGENT_NAME。
+
+## 專案結構
+
+-   `_agent/`: 存放 Agent 的任務處理相關檔案（inbox, outbox, archive）。
+-   `core/`: Agent 的核心邏輯與工具。
+-   `scripts/`: Agent 的輔助腳本。
+-   `config/`: 設定檔。
+-   `deploy/`: 部署相關腳本。
+-   `exports/`: 可匯出的通用工具模組。
+-   `tests/`: 測試檔案。
+
+## 啟動 Agent Listener
+
+```bash
+# 設定 Redis 連線 (若與預設不同)
+export REDIS_HOST=your_redis_host
+export REDIS_PORT=your_redis_port
+
+# 啟動監聽器
+python3 core/agent_listener.py REPLACE_AGENT_NAME
+```
+
+## 啟動流程
+
+1.  設定環境變數 (如果需要).
+2.  執行 `python3 core/agent_listener.py <your_agent_name>` 來啟動監聽器。
+3.  HQ 會自動派發任務，Agent Listener 會接收並交由 Codex 處理。
+
+## 部署
+
+請參考 `./deploy/deploy.sh`。

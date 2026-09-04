@@ -1,0 +1,225 @@
+<?php
+
+namespace App\Models;
+
+use App\Services\RevenueCalculator;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Machine Model Extensions
+ * 
+ * 將 RevenueController 和 RealtimeController 的業務邏輯遷移到 Machine Model
+ * 這個 trait 被 Machine Model 使用
+ */
+trait MachineExtensions
+{
+    /**
+     * 計算收入（從 RevenueController 遷移）
+     * 
+     * @param array $pulseData ['coin_pulse' => int, 'credit_pulse' => int, 'remote_credit_pulse' => int]
+     * @param RevenueCalculator|null $calculator
+     * @return array
+     */
+    public function calculateRevenue(array $pulseData, ?RevenueCalculator $calculator = null): array
+    {
+        if (!$calculator) {
+            $calculator = app(RevenueCalculator::class);
+        }
+
+        // 從 machines 表讀取參數（向後相容：使用與 devices 相同的欄位名）
+        $parameters = [
+            'pulse_ratio' => $this->pulse_to_display ?? 100,
+            'credit_amount' => $this->pulse_to_token ?? 1.0,
+            'score_to_money_rate' => 0.01, // 預設 1分 = 0.01元
+            'coin_to_score_rate' => 10, // 預設 1幣 = 10分
+        ];
+
+        // 計算各類收入
+        $coinRevenue = isset($pulseData['coin_pulse'])
+            ? $this->calculateCoinRevenue($pulseData['coin_pulse'], $parameters, $calculator)
+            : 0;
+
+        $creditRevenue = isset($pulseData['credit_pulse'])
+            ? $this->calculateCreditRevenue($pulseData['credit_pulse'], $parameters, $calculator)
+            : 0;
+
+        $remoteCreditRevenue = isset($pulseData['remote_credit_pulse'])
+            ? $this->calculateRemoteCreditRevenue($pulseData['remote_credit_pulse'], $parameters, $calculator)
+            : 0;
+
+        $totalRevenue = $coinRevenue + $creditRevenue + $remoteCreditRevenue;
+
+        return [
+            'machine_id' => $this->id,
+            'chip_id' => $this->chip_id,
+            'coin_revenue' => $coinRevenue,
+            'credit_revenue' => $creditRevenue,
+            'remote_credit_revenue' => $remoteCreditRevenue,
+            'total_revenue' => $totalRevenue,
+            'parameters' => $parameters,
+        ];
+    }
+
+    /**
+     * 計算投幣收入
+     */
+    protected function calculateCoinRevenue(int $coinPulse, array $parameters, RevenueCalculator $calculator): float
+    {
+        $transactions = [
+            ['type' => 'coin', 'count' => $coinPulse]
+        ];
+        
+        return $calculator->calculateTotalRevenue($transactions, $parameters);
+    }
+
+    /**
+     * 計算開分收入
+     */
+    protected function calculateCreditRevenue(int $creditPulse, array $parameters, RevenueCalculator $calculator): float
+    {
+        $transactions = [
+            ['type' => 'credit', 'count' => $creditPulse]
+        ];
+        
+        return $calculator->calculateTotalRevenue($transactions, $parameters);
+    }
+
+    /**
+     * 計算遠端開分收入
+     */
+    protected function calculateRemoteCreditRevenue(int $remoteCreditPulse, array $parameters, RevenueCalculator $calculator): float
+    {
+        $transactions = [
+            ['type' => 'remote_credit', 'total_score' => $remoteCreditPulse]
+        ];
+        
+        return $calculator->calculateTotalRevenue($transactions, $parameters);
+    }
+
+    /**
+     * 獲取收入審計記錄（從 RevenueController 遷移）
+     * 
+     * @param int $transactionId
+     * @return array|null
+     */
+    public function getRevenueAudit(int $transactionId): ?array
+    {
+        $revenueFact = RevenueFact::find($transactionId);
+
+        if (!$revenueFact) {
+            return null;
+        }
+
+        // 驗證 chip_id 是否匹配
+        if (strtolower($revenueFact->chip_id) !== strtolower($this->chip_id)) {
+            Log::warning('Machine: Revenue audit chip_id mismatch', [
+                'machine_chip_id' => $this->chip_id,
+                'fact_chip_id' => $revenueFact->chip_id,
+            ]);
+            return null;
+        }
+
+        return [
+            'transaction_id' => $revenueFact->id,
+            'chip_id' => $revenueFact->chip_id,
+            'machine_name' => $this->name,
+            'transaction_type' => $revenueFact->transaction_type,
+            'pulse_count' => $revenueFact->pulse_count,
+            'amount' => $revenueFact->amount,
+            'pulse_ratio' => $revenueFact->pulse_ratio,
+            'is_valid' => $revenueFact->is_valid,
+            'event_ts' => $revenueFact->event_ts,
+            'created_at' => $revenueFact->created_at,
+        ];
+    }
+
+    /**
+     * 獲取期間統計（從 RealtimeController 遷移）
+     * 
+     * @param \Carbon\Carbon $periodStart
+     * @return array
+     */
+    public function getPeriodStatistics(\Carbon\Carbon $periodStart): array
+    {
+        // 查詢該機器在指定期間的營收數據
+        $periodRevenue = RevenueFact::where('chip_id', strtolower($this->chip_id))
+            ->where('event_ts', '>=', $periodStart)
+            ->where('is_valid', true)
+            ->selectRaw('
+                transaction_type,
+                SUM(amount) as period_amount
+            ')
+            ->groupBy('transaction_type')
+            ->get()
+            ->keyBy('transaction_type');
+
+        $periodCreditIn = $periodRevenue->get('credit_in')?->period_amount ?? 0;
+        $periodCreditOut = $periodRevenue->get('credit_out')?->period_amount ?? 0;
+
+        return [
+            'period_credit_in' => (int) $periodCreditIn,
+            'period_credit_out' => (int) $periodCreditOut,
+        ];
+    }
+
+    /**
+     * 獲取機器即時狀態（用於 realtime dashboard）
+     * 
+     * @param \Carbon\Carbon $periodStart
+     * @param string|null $venueName
+     * @param bool $isOnline
+     * @return array
+     */
+    public function getRealtimeStatus(\Carbon\Carbon $periodStart, ?string $venueName = null, bool $isOnline = false): array
+    {
+        $periodStats = $this->getPeriodStatistics($periodStart);
+
+        return [
+            'chip_id' => $this->chip_id,
+            'name' => $this->name,
+            'venue_name' => $venueName ?? '未分配',
+            'status' => $isOnline ? 'online' : 'offline',
+            'last_seen_at' => $this->last_seen_at?->toIso8601String(),
+            'period_credit_in' => $periodStats['period_credit_in'],
+            'period_credit_out' => $periodStats['period_credit_out'],
+            'lifetime_credit_in' => $this->lifetime_credit_in ?? 0,
+            'lifetime_credit_out' => $this->lifetime_credit_out ?? 0,
+            'type' => $this->type,
+        ];
+    }
+
+    /**
+     * 獲取命令歷史（從 RealtimeController 遷移）
+     * 
+     * @return \Illuminate\Support\Collection
+     */
+    public function getCommandHistory()
+    {
+        // 使用 chip_id 查詢（因為 commandLogs 可能使用 chip_id）
+        return \App\Models\DeviceCommandLog::where('chip_id', strtolower($this->chip_id))
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'command' => $log->command,
+                    'status' => $log->status,
+                    'requested_amount' => $log->requested_amount,
+                    'actual_amount' => $log->actual_amount,
+                    'payload' => $log->request_payload,
+                    'response_payload' => $log->response_payload,
+                    'created_at' => $log->created_at->toIso8601String(),
+                    'updated_at' => $log->updated_at->toIso8601String(),
+                ];
+            });
+    }
+
+    /**
+     * 關聯到 revenue_facts（透過 chip_id）
+     */
+    public function revenueFacts()
+    {
+        return $this->hasMany(RevenueFact::class, 'chip_id', 'chip_id');
+    }
+}

@@ -65,7 +65,7 @@ echo "=== 最近的 Agent 活動 ==="
 echo ""
 
 echo "【Ina】"
-ina_log="/Users/ilawusong/Documents/sysWawIot/tg25-infra/logs/agent_redis_listener.out.log"
+ina_log="/Users/ilawusong/Documents/WaW/Infra/logs/agent_redis_listener.out.log"
 if [ -f "$ina_log" ]; then
     tail -n 2 "$ina_log" | sed 's/^/  /'
 else
@@ -74,7 +74,7 @@ fi
 
 echo ""
 echo "【Mina】"
-mina_log="/Users/ilawusong/Documents/sysWawIot/Member/logs/agent_redis_listener.out.log"
+mina_log="/Users/ilawusong/Documents/WaW/PROJECT/Member/logs/agent_redis_listener.out.log"
 if [ -f "$mina_log" ]; then
     tail -n 2 "$mina_log" | sed 's/^/  /'
 else
@@ -83,7 +83,7 @@ fi
 
 echo ""
 echo "【Sophie】"
-sophie_log="/Users/ilawusong/Documents/sysWawIot/wawOwner/logs/agent_redis_listener.out.log"
+sophie_log="/Users/ilawusong/Documents/WaW/Owner/logs/agent_redis_listener.out.log"
 if [ -f "$sophie_log" ]; then
     tail -n 2 "$sophie_log" | sed 's/^/  /'
 else

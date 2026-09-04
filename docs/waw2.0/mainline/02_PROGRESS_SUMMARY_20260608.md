@@ -215,8 +215,8 @@ python scripts/hq_message_hub.py
 - `02_technical_standards/` - MQTT、WebSocket、命名標準
 
 ### Agent 通訊
-- `_agent/inbox/` - 收到的 Agent 回報
-- `_agent/outbox/` - 派發給 Agent 的任務
+- `.taskbox/inbox/` - 收到的 Agent 回報
+- `.taskbox/outbox/` - 派發給 Agent 的任務
 
 ---
 

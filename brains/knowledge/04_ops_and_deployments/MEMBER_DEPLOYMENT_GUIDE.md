@@ -3,7 +3,7 @@
 ## SSH 連線設定
 
 ### 伺服器資訊
-- **HostName**: `129.146.0.47`
+- **HostName**: `129.146.103.177`
 - **Port**: `39022`
 - **User**: `ubuntu`
 - **IdentityFile**: `~/.ssh/id_rsa`
@@ -12,7 +12,7 @@
 ### 連線指令
 ```bash
 # 直接連線
-ssh -p 39022 ubuntu@129.146.0.47
+ssh -p 39022 ubuntu@129.146.103.177
 
 # 或使用 SSH config 別名（需在 ~/.ssh/config 設定）
 ssh yd47
@@ -21,7 +21,7 @@ ssh yd47
 ### SSH Config 設定範例
 ```
 Host yd47
-    HostName 129.146.0.47
+    HostName 129.146.103.177
     Port 39022
     User ubuntu
     IdentityFile ~/.ssh/id_rsa
@@ -34,7 +34,7 @@ Host yd47
 ### 標準部署流程（無衝突情況）
 
 ```bash
-ssh -p 39022 ubuntu@129.146.0.47 "cd /www/wwwroot/win.tg25.win && \
+ssh -p 39022 ubuntu@129.146.103.177 "cd /www/wwwroot/win.tg25.win && \
 git pull origin main && \
 pnpm install && pnpm build && \
 php artisan migrate --force && \

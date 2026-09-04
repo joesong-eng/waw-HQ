@@ -1,0 +1,28 @@
+#!/bin/bash
+# Agent 回報給 HQ — 極簡檔案版
+# 用法：bash ../../scripts/agent_report_to_hq_v2.sh <agent_name> <report_file.md>
+# 純寫檔，無 Redis 依賴
+
+AGENT_NAME="${1}"
+REPORT_FILE="${2}"
+
+if [ -z "${AGENT_NAME}" ]; then
+    echo "❌ 請提供 Agent 名稱"; exit 1
+fi
+if [ -z "${REPORT_FILE}" ] || [ ! -f "${REPORT_FILE}" ]; then
+    echo "❌ 找不到回報檔案: ${REPORT_FILE}"; exit 1
+fi
+
+# 自動找 HQ _agent/inbox（向上找兩層）
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+HQ_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+HQ_INBOX="${HQ_DIR}/_agent/inbox"
+
+mkdir -p "${HQ_INBOX}"
+
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+DEST="${HQ_INBOX}/${TIMESTAMP}_${AGENT_NAME}.md"
+
+cp "${REPORT_FILE}" "${DEST}"
+echo "✅ ${AGENT_NAME} 回報已送達 HQ inbox"
+echo "   → ${DEST}"

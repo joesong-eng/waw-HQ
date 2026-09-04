@@ -1,0 +1,8 @@
+{
+  "from_agent": "allie",
+  "task_id": "REPORT_20260806_TEST_CONNECTION",
+  "consult_id": null,
+  "timestamp": "2026-08-06T08:31:54Z",
+  "report_file": "_agent/REPORT_20260806_TEST_CONNECTION.md",
+  "report": "這是一則 Alliance 的通訊測試訊息。若 HQ 收到此訊號，代表回報機制運作正常。\n"
+}

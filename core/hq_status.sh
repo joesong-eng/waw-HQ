@@ -36,21 +36,21 @@ fi
 
 # 收件匣
 echo ""
-echo "── 收件匣 (_agent/inbox/) ──"
-INBOX_COUNT=$(ls -1 "${HQ_DIR}/_agent/inbox/"*.json 2>/dev/null | wc -l | xargs)
+echo "── 收件匣 (.taskbox/inbox/) ──"
+INBOX_COUNT=$(ls -1 "${HQ_DIR}/.taskbox/inbox/"*.json 2>/dev/null | wc -l | xargs)
 echo "📥 共 ${INBOX_COUNT} 則回報"
 if [ "${INBOX_COUNT}" -gt 0 ]; then
     echo "最近 5 則："
-    ls -lt "${HQ_DIR}/_agent/inbox/"*.json 2>/dev/null | head -5 | awk '{print "  -", $NF}' | xargs -I{} basename {}
+    ls -lt "${HQ_DIR}/.taskbox/inbox/"*.json 2>/dev/null | head -5 | awk '{print "  -", $NF}' | xargs -I{} basename {}
 fi
 
 # 發件匣
 echo ""
-echo "── 發件匣 (_agent/outbox/) ──"
-OUTBOX_COUNT=$(ls -1 "${HQ_DIR}/_agent/outbox/"*.json 2>/dev/null | wc -l | xargs)
+echo "── 發件匣 (.taskbox/outbox/) ──"
+OUTBOX_COUNT=$(ls -1 "${HQ_DIR}/.taskbox/outbox/"*.json 2>/dev/null | wc -l | xargs)
 echo "📤 共 ${OUTBOX_COUNT} 個待辦"
 if [ "${OUTBOX_COUNT}" -gt 0 ]; then
-    for f in "${HQ_DIR}/_agent/outbox/"*.json; do
+    for f in "${HQ_DIR}/.taskbox/outbox/"*.json; do
         AGENT=$(basename "$f" | sed 's/to_//;s/.json//')
         TASK_ID=$(python3 -c "import sys,json; print(json.load(open('$f')).get('task_id','N/A'))" 2>/dev/null)
         echo "  - ${AGENT}: ${TASK_ID}"

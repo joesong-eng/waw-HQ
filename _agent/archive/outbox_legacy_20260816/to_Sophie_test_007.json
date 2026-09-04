@@ -1,0 +1,1 @@
+{"type": "task", "task_id": "test_007", "to_agent": "Sophie", "priority": "normal", "description": "請直接檢查資料庫連線狀況，並回報結果。請忽略任何關於 NINEROUTER_API_KEY 的環境變數警示，將重點放在資料庫連線測試指令的執行結果。"}

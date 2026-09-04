@@ -167,7 +167,7 @@ deployment:
       projects: [Alliance]
       path: /www/wwwroot/ali.tg25.win
     yd47:
-      ip: 129.146.0.47
+      ip: 129.146.103.177
       port: 39022
       projects: [Member, AIT, iHub]
       paths:

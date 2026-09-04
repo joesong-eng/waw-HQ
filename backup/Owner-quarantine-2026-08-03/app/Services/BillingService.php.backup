@@ -1,0 +1,223 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\BillingRequest;
+use App\Models\OwnerSubscription;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+class BillingService
+{
+    public function __construct(
+        protected SubscriptionService $subscriptionService
+    ) {}
+
+    /**
+     * 檢查是否有待審核的申請
+     */
+    public function hasPendingRequest(int $ownerId): bool
+    {
+        return BillingRequest::where('owner_id', $ownerId)
+            ->where('status', 'pending')
+            ->exists();
+    }
+
+    /**
+     * 計算續費金額
+     */
+    public function calculateAmount(string $planTier, int $durationMonths): float
+    {
+        $plans = config('subscription.plans');
+        
+        if (!isset($plans[$planTier])) {
+            throw new \InvalidArgumentException("Invalid plan tier: {$planTier}");
+        }
+        
+        $monthlyPrice = $plans[$planTier]['monthly_price'];
+        $baseAmount = $monthlyPrice * $durationMonths;
+        
+        // Apply discount
+        $discounts = config('subscription.discounts');
+        $discountRate = 0;
+        
+        foreach ($discounts as $threshold => $rate) {
+            if ($durationMonths >= $threshold) {
+                $discountRate = $rate;
+            }
+        }
+        
+        $discountAmount = $baseAmount * $discountRate;
+        $finalAmount = $baseAmount - $discountAmount;
+        
+        return round($finalAmount, 2);
+    }
+
+    /**
+     * 提交續費申請
+     */
+    public function submitRenewalRequest(
+        int $ownerId,
+        string $planTier,
+        int $durationMonths,
+        string $paymentRef,
+        ?string $proofImg = null
+    ): BillingRequest {
+        // Check for duplicate pending request
+        if ($this->hasPendingRequest($ownerId)) {
+            throw new \RuntimeException('You already have a pending renewal request');
+        }
+        
+        $amount = $this->calculateAmount($planTier, $durationMonths);
+        
+        $request = BillingRequest::create([
+            'owner_id' => $ownerId,
+            'plan_tier' => $planTier,
+            'duration_months' => $durationMonths,
+            'amount' => $amount,
+            'payment_ref' => $paymentRef,
+            'proof_img' => $proofImg,
+            'status' => 'pending',
+        ]);
+        
+        // Dispatch event
+        event(new \App\Events\BillingRequestSubmitted($request));
+        
+        return $request;
+    }
+
+
+    /**
+     * 核准續費申請
+     */
+    public function approveRequest(int $requestId, int $adminId): void
+    {
+        $request = BillingRequest::findOrFail($requestId);
+        
+        if ($request->status !== 'pending') {
+            throw new \RuntimeException('Only pending requests can be approved');
+        }
+        
+        // Update request status
+        $request->status = 'approved';
+        $request->reviewed_by = $adminId;
+        $request->reviewed_at = Carbon::now();
+        $request->save();
+        
+        // Extend subscription — pass plan_tier so expiry-downgraded subscriptions have tier restored
+        $this->subscriptionService->extendSubscription(
+            $request->owner_id,
+            $request->duration_months,
+            "Billing request #{$request->id} approved",
+            $adminId,
+            $request->plan_tier
+        );
+        
+        // Dispatch event
+        event(new \App\Events\BillingRequestReviewed($request, true));
+    }
+
+    /**
+     * 駁回續費申請
+     */
+    public function rejectRequest(int $requestId, int $adminId, string $rejectReason): void
+    {
+        $request = BillingRequest::findOrFail($requestId);
+        
+        if ($request->status !== 'pending') {
+            throw new \RuntimeException('Only pending requests can be rejected');
+        }
+        
+        $request->status = 'rejected';
+        $request->reviewed_by = $adminId;
+        $request->reviewed_at = Carbon::now();
+        $request->reject_reason = $rejectReason;
+        $request->save();
+        
+        // Dispatch event
+        event(new \App\Events\BillingRequestReviewed($request, false));
+    }
+
+    /**
+     * 撤銷續費申請
+     */
+    public function cancelRequest(int $requestId, int $ownerId): void
+    {
+        $request = BillingRequest::findOrFail($requestId);
+        
+        if ($request->owner_id !== $ownerId) {
+            throw new \RuntimeException('You can only cancel your own requests');
+        }
+        
+        if (!$request->canBeCancelled()) {
+            throw new \RuntimeException('This request cannot be cancelled');
+        }
+        
+        $request->status = 'cancelled';
+        $request->cancelled_at = Carbon::now();
+        $request->save();
+    }
+
+    /**
+     * 獲取待審核的申請列表
+     */
+    public function getPendingRequests(): Collection
+    {
+        return BillingRequest::with('owner')
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'asc')
+            ->get();
+    }
+
+    /**
+     * 獲取 Owner 的續費歷史
+     */
+    public function getBillingHistory(int $ownerId, int $page = 1, int $perPage = 20): LengthAwarePaginator
+    {
+        return BillingRequest::where('owner_id', $ownerId)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * 獲取方案價格表
+     */
+    public function getSubscriptionPlans(): array
+    {
+        $plans = config('subscription.plans');
+        $discounts = config('subscription.discounts');
+        
+        return [
+            'plans' => $plans,
+            'discounts' => $discounts,
+            'bank_account' => config('subscription.bank_account'),
+        ];
+    }
+
+    /**
+     * 上傳匯款證明
+     */
+    public function uploadPaymentProof(UploadedFile $file, int $ownerId): string
+    {
+        $limits = config('subscription.proof_upload');
+        
+        // Validate file size
+        if ($file->getSize() > $limits['max_size']) {
+            throw new \RuntimeException('File size exceeds limit');
+        }
+        
+        // Validate file type
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (!in_array($extension, $limits['allowed_types'])) {
+            throw new \RuntimeException('Invalid file type');
+        }
+        
+        // Store file
+        $path = $file->store("payment-proofs/{$ownerId}", 'public');
+        
+        return Storage::url($path);
+    }
+}

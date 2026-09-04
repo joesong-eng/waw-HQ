@@ -21,7 +21,7 @@ Joe
  │ ./scripts/hq_task_flow.sh task <agent> <task_id> "<描述>" [priority]
  ▼
 hq_task_flow.sh
- ├─→ 寫入 _agent/outbox/to_<Agent>.json（備份存檔）
+ ├─→ 寫入 .taskbox/outbox/to_<Agent>.json（備份存檔）
  └─→ redis-cli PUBLISH agent/<agent>/task <payload>
            │
            ▼
@@ -32,7 +32,7 @@ hq_task_flow.sh
            │
            ▼
    Agent 執行完成
-   └─→ agent_report_to_hq_v2.sh → HQ/_agent/inbox/
+   └─→ agent_report_to_hq_v2.sh → HQ/.taskbox/inbox/
 ```
 
 ---
@@ -97,7 +97,7 @@ bash ../HQ/scripts/agent_report_to_hq_v2.sh ina _agent/LATEST_REPORT.md ../HQ
 
 **回報流程**：
 1. 優先 HTTP POST → `localhost:8899/report`
-2. 失敗則自動 fallback → 直接寫入 `HQ/_agent/inbox/`
+2. 失敗則自動 fallback → 直接寫入 `HQ/.taskbox/inbox/`
 
 ---
 
@@ -105,10 +105,10 @@ bash ../HQ/scripts/agent_report_to_hq_v2.sh ina _agent/LATEST_REPORT.md ../HQ
 
 ```bash
 # 查看最新回報
-ls -lht _agent/inbox/ | head -10
+ls -lht .taskbox/inbox/ | head -10
 
 # 讀取特定 Agent 回報
-cat _agent/inbox/<最新檔案>.json
+cat .taskbox/inbox/<最新檔案>.json
 ```
 
 ---
@@ -171,7 +171,7 @@ HQ/_agent/
 bash ../HQ/scripts/agent_report_to_hq_v2.sh sophie _agent/LATEST_REPORT.md ../HQ
 
 # 查看回報
-ls -lht _agent/inbox/ && cat _agent/inbox/<最新>.json
+ls -lht .taskbox/inbox/ && cat .taskbox/inbox/<最新>.json
 
 # 服務狀態
 launchctl list | grep com.hq && redis-cli ping

@@ -20,7 +20,7 @@ except ImportError:
     print("❌ 請先安裝 redis：pip install redis")
     sys.exit(1)
 
-HQ_PATH = Path(os.environ.get('HQ_PATH', '/Users/ilawusong/Documents/sysWawIot/HQ'))
+HQ_PATH = Path(os.environ.get('HQ_PATH', '/Users/ilawusong/Documents/WaW'))
 CODEX_BIN = os.environ.get('CODEX_BIN') or shutil.which('codex') or '/Users/ilawusong/.local/bin/codex'
 EXEC_TIMEOUT = int(os.environ.get('AGENT_EXEC_TIMEOUT', '900'))
 REDIS_HOST = 'localhost'
@@ -30,35 +30,35 @@ SKILL_FILE = HQ_PATH / 'skills' / 'hq_ops' / 'analyse_agent_report.md'
 # ── Agent 設定表 ────────────────────────────────────────────────────────────────
 AGENTS = {
     'hq': {
-        'work_dir': '/Users/ilawusong/Documents/sysWawIot/HQ',
+        'work_dir': '/Users/ilawusong/Documents/WaW',
         'label': 'HQ',
     },
     'ina': {
-        'work_dir': '/Users/ilawusong/Documents/sysWawIot/tg25-infra',
+        'work_dir': '/Users/ilawusong/Documents/WaW/Infra',
         'label': 'Ina (Infra Master)',
     },
     'sophie': {
-        'work_dir': '/Users/ilawusong/Documents/sysWawIot/waw-core',
+        'work_dir': '/Users/ilawusong/Documents/WaW/Owner',
         'label': 'Sophie (Owner)',
     },
     'mina': {
-        'work_dir': '/Users/ilawusong/Documents/sysWawIot/Member',
+        'work_dir': '/Users/ilawusong/Documents/WaW/PROJECT/Member',
         'label': 'Mina (Member)',
     },
     'allie': {
-        'work_dir': '/Users/ilawusong/Documents/sysWawIot/Alliance',
+        'work_dir': '/Users/ilawusong/Documents/WaW/PROJECT/Alliance',
         'label': 'Allie (Alliance)',
     },
     'hubie': {
-        'work_dir': '/Users/ilawusong/Documents/sysWawIot/iHub',
+        'work_dir': '/Users/ilawusong/Documents/WaW/PROJECT/iHub',
         'label': 'Hubie (iHub)',
     },
     'coli': {
-        'work_dir': '/Users/ilawusong/Documents/sysWawIot/IOTwawS3',
+        'work_dir': '/Users/ilawusong/Documents/WaW/PROJECT/IOTwawS3',
         'label': 'Coli (IOTwawS3)',
     },
     'fio': {
-        'work_dir': '/Users/ilawusong/Documents/sysWawIot/IOTkiosk_v0',
+        'work_dir': '/Users/ilawusong/Documents/WaW/PROJECT/IOTkiosk_v0',
         'label': 'Fio (IOTkiosk_v0)',
     },
 }

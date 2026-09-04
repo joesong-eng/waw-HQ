@@ -15,7 +15,7 @@ from datetime import datetime
 # ⚙️ 配置區
 # ==========================================
 
-HQ_DIR = "/Users/ilawusong/Documents/sysWawIot/HQ"
+HQ_DIR = "/Users/ilawusong/Documents/WaW"
 AGENT_NAME = "HHQM"
 PROJECT_NAME = "sysWawIot"
 

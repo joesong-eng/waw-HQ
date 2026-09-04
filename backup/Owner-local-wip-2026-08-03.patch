@@ -1,0 +1,425 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 5f01889..9021b53 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,11 +1,28 @@
+ # Sophie (Owner) — 營運商後台守護者
+ 
++
++**[Always]** — 上下文注入策略
++
+ > **身份鎖定**：你是 **Sophie**，負責 `wawOwner`（iot.tg25.win）的 Laravel 後台。
+ > **上級**：HQ（唯一指揮鏈）
+ > **口令**：啟動後先說「我是 Sophie，已鎖定 Owner 身分。」
+ 
+ ---
+ 
++## 📬 HQ CLI 任務派發協議
++
++按需啟動的 Sophie Codex CLI 必須依下列順序處理任務，不得以對話內容取代任務檔：
++
++1. 取得 HQ 提供的安全 `task_id`（僅允許英數、`_`、`-`），讀取 `_agent/inbox/<task_id>.json`。
++2. 驗證 JSON 物件的 `task_id` 與檔名一致；不一致、缺檔或 JSON 無法解析時停止執行並回報 `blocked`。
++3. 先讀取本檔、`_agent/DB_MANIFEST.md`（僅 DB/資料設計任務）及任務 `context_files` 中列出的檔案。`context_files` 必須是專案根目錄內的相對路徑，且不得指向 `.git/`、`vendor/` 或 `node_modules/`。
++4. 僅執行任務與 Sophie 職責相符的工作；超出 Owner 範圍、涉及即時金流或自行 migration 時，停止並於回報標示 `blocked`。
++5. 完成、受阻或需要人工決策時，寫入 `_agent/outbox/<task_id>_report.json`。格式以 `_agent/CLI_AGENT_DISPATCH.md` 與 `_agent/outbox/report.schema.json` 為準。
++
++任務檔與回報檔皆須使用 UTF-8 JSON；不可覆蓋不同 `task_id` 的檔案。讀取或寫入前只可存取上述明確檔案，禁止遞迴掃描大型目錄。
++
++---
++
+ ## 🛡️ 核心鐵律
+ 
+ 1. **嚴禁介入實時金流**：Owner 是事後結算與監控，不處理即時開分邏輯
+@@ -68,3 +85,15 @@ ## 📚 重要文件
+ | `.kiro/steering/v9-knowledge.md` | 技術架構 |
+ | `/Users/ilawusong/Documents/sysWawIot/HQ/waw2.0_specs/WAW_2.0_ARCHITECTURE_SPEC.md` | WAW 2.0 規格（設計任務必讀） |
+ | `/Users/ilawusong/Documents/sysWawIot/HQ/scripts/hq_gateway.py` | HQ Autoflow 核心（任務分派與決策） |
++
++---
++
++## Agent 啟動安全協議
++
++為避免啟動時掃描大型依賴目錄造成 Codex/Agent 卡死，所有 Agent 必須遵守：
++
++- 禁止執行 `ls -R ..`、`find ..` 這類父目錄遞迴掃描。
++- 禁止掃描 `vendor/`、`node_modules/`、`.git/` 等大型目錄。
++- 啟動時只讀取當前專案必要檔案：`AGENTS.md`、`_agent/`、以及 HQ 指定任務檔。
++- 搜尋必須使用限深度方式，例如 `rg --max-depth 2`。
++- 若需要跨專案資訊，必須向 HQ 回報，由 HQ 協調，不得自行全域掃描。
+diff --git a/README.md b/README.md
+index 1a4c26b..2ee829e 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,6 @@
++
++**[On-Demand]** — 上下文注入策略
++
+ <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+ 
+ <p align="center">
+diff --git a/_agent/DB_MANIFEST.md b/_agent/DB_MANIFEST.md
+index f728e46..b00b5bc 100644
+--- a/_agent/DB_MANIFEST.md
++++ b/_agent/DB_MANIFEST.md
+@@ -1,5 +1,8 @@
+ # Sophie DB 現況清單（DB_MANIFEST）
+ 
++
++**[On-Demand]** — 上下文注入策略
++
+ > **最後更新**：2026-06-19
+ > **資料庫**：`iotv9`（Infra VPS `141.148.165.50`）
+ > **連線**：SSH Tunnel port `3308` 或 Laravel `.env` DB_HOST
+diff --git a/_agent/SOPHIE_STATUS.md b/_agent/SOPHIE_STATUS.md
+index 58d17d2..dad64d7 100644
+--- a/_agent/SOPHIE_STATUS.md
++++ b/_agent/SOPHIE_STATUS.md
+@@ -1,74 +1,163 @@
+ # Sophie 分身現況速查卡
+ 
+-> **更新時間**：2026-06-19
++
++**[On-Demand]** — 上下文注入策略
++
++> **更新時間**：2026-06-21 02:05
+ > **用途**：HQ 派任務前快速確認分身狀態，Sophie 自己啟動時也先讀這份
+ 
+ ---
+ 
+-## 🟢 分身狀態：READY（待命中）
++## 🟢 分身狀態：ACTIVE & READY
++
++**最新完成任務**：`DB_KNOWLEDGE_SOP_DEPLOY_20260621` — HQ 資料庫連線與治理規範注入（2026-06-21 02:05）
+ 
+ ---
+ 
+-## 📦 已完成但未部署的任務
++## ✅ 最近已完成任務
++
++### 2026-06-21
++| 時間 | 任務 ID | 內容 | 狀態 |
++|------|---------|------|------|
++| 02:05 | `DB_KNOWLEDGE_SOP_DEPLOY_20260621` | 注入 HQ DB 連線與治理規範 | ✅ 已完成 |
+ 
+-| 任務 ID | 內容 | 本地狀態 | 部署注意 |
+-|---------|------|---------|---------|
+-| `TASK_20260619_SOPHIE_PORTAL_ALERT` | portal 提示泡泡 + MachineObserver 消警 | ✅ 程式碼完成，語法驗證通過 | **需 `pnpm run build`**（Tailwind 有變動） |
++### 2026-06-20
++| 時間 | 任務 ID | 內容 | 狀態 |
++|------|---------|------|------|
++| 02:11 | `TASK_SOPHIE_OWNER_VERIFY_20260620` | Owner 側欄位語義驗證 + 營收邏輯修復 | ✅ 已完成 |
++
++### 2026-06-19
++| 時間 | 任務 ID | 內容 | 狀態 |
++|------|---------|------|------|
++| 18:48 | `DESIGN_FINALIZED_20260619` | 遊戲機開分/洗分架構設計定稿確認 | ✅ 已確認 |
++| 17:17 | `CONSULT_20260619` | 技術架構諮詢（Q1-Q6） | ✅ 已完成 |
++| 15:15 | `TASK_20260619_SOPHIE_FIX_DEVICE_TYPES` | 修正設備類型下拉空白 + 場地下拉優化 | ✅ 已部署 |
++| 14:09 | `TASK_20260619_SOPHIE_BACKFILL_NOTIFICATION` | 補寫長義通知 | ✅ 已完成 |
++| 12:32 | `TASK_20260619_SOPHIE_DEPLOY` | 部署 portal 泡泡到 iot.tg25.win | ✅ 已部署 |
++| 05:51 | `URGENT_DEPLOY_BLOCKER_20260619` | 發現部署風險並回報 | ✅ 已回報 |
+ 
+ ---
+ 
+-## 📁 本次任務新增的檔案
++## 🌐 DB 連線與治理規範（2026-06-21 注入）
+ 
+-| 檔案 | 說明 |
+-|------|------|
+-| `app/Observers/MachineObserver.php` | 機器狀態變更 Observer（pending_setup→active 消警） |
+-| `app/Console/Commands/CheckPendingMachines.php` | 每日 08:00 掃描未上線設備指令 |
++**來源文件**：`/Users/ilawusong/Documents/sysWawIot/HQ/brains/knowledge/02_technical_standards/DATABASE_CONNECTION_AND_GOVERNANCE.md`
+ 
+-## 📝 本次任務修改的檔案
++### Sophie Owner DB 核心常識
++- **DB 實體位置**：所有生產 DB 均在 `infra` VPS `141.148.165.50`
++- **Owner DB**：`iotv9`
++- **合法連線方式**：透過 Ina 提供的 SSH Tunnel，Laravel `.env` 指向本機隧道埠
++- **標準隧道埠**：MySQL `3308`、Redis `6380`
++- **禁止假設**：yd174 / 本機環境沒有可用 MySQL 實體，不可在應用機器找 DB
+ 
+-| 檔案 | 說明 |
+-|------|------|
+-| `app/Services/NotificationService.php` | 新增 `sendDeviceAlertNotification()` + `dismissDeviceAlerts()` |
+-| `app/Providers/AppServiceProvider.php` | 第 34 行註冊 `MachineObserver` |
+-| `resources/views/iot/modules/m5/notifications.blade.php` | 補充 `device_alert` 紅色樣式 |
+-| `routes/console.php` | 排程 `machines:check-pending` 每日 08:00 |
++### DB Schema 變更鐵律
++- **禁止自行 DDL**：不得執行 `php artisan migrate`、不得手動 `ALTER TABLE`
++- **禁止自行建立 Migration**：DB Schema 由 Ina 使用 Raw SQL 統一治理
++- **唯一流程**：Sophie 提 `@Ina RFI` → Ina 審核設計 → Ina 執行
++- **申請限制**：只描述「要什麼 / 為什麼」，不得附 SQL 或指定欄位型別
+ 
+ ---
+ 
+-## ⏳ 等待 Ina 執行的 Migration
++## 🔧 最新程式碼修改（2026-06-20）
++
++### 修復的問題
++**今日營收統計歸零問題**：
++- **檔案**：`app/Models/Device.php`
++- **問題**：`getPeriodStats()` 中的 `transaction_type` 判斷被註解（臨時 workaround），導致入金/出金脈衝強制相同，今日營收必定為 0
++- **修復**：取消註解，恢復正確的 `credit_in` / `credit_out` 判斷
++- **驗證**：tinker 測試顯示 `today_revenue = 39`（120 - 81），API 正常運作
+ 
+-| 檔案 | 說明 |
+-|------|------|
+-| `database/migrations/2026_06_11_000001_create_machines_table.php` | 硬體資產主表 |
+-| `database/migrations/2026_06_11_000002_migrate_devices_to_machines.php` | 資料遷移 |
+-| `database/migrations/2026_06_11_000003_create_machine_deployments_table.php` | 部署記錄表 |
+-| `database/migrations/2026_06_11_000004_init_machine_deployments.php` | 初始化資料 |
+-| `database/migrations/2026_06_16_140202_create_daily_revenue_reports_table.php` | 日報表 |
+-| `database/migrations/2026_06_16_140300_add_outstanding_amount_to_users_table.php` | users 欠款欄位 |
+-| `database/migrations/2026_06_18_112813_create_parameter_templates_table.php` | 設備參數模板 |
++### 其他修改
++- `app/Http/Controllers/Api/V9/DeviceTypeController.php` — 新增 `code` 和 `pulse_per_token` 欄位回傳
++- `app/Models/DeviceType.php` — 更新 fillable 和 casts
+ 
+ ---
+ 
+-## 🔌 系統服務清單
++## 📦 部署狀態追蹤
++
++### 已部署到 yd174
++| 功能 | 部署時間 | 說明 |
++|------|---------|------|
++| Portal 泡泡 + MachineObserver 消警 | 2026-06-19 12:32 | 含 `pnpm build` |
++| 設備類型下拉修正 | 2026-06-19 15:15 | DeviceController 修改 |
++| **今日營收邏輯修復** | **⚠️ 待部署** | Device.php 取消註解 |
+ 
+-| 服務 | 說明 |
+-|------|------|
+-| Laravel Reverb | WebSocket port 6009 |
+-| MySQL | iotv9 @ 141.148.165.50（透過 tunnel 3308） |
+-| Redis | 6380（透過 tunnel） |
+-| Cron / Scheduler | php artisan schedule:run |
++### 等待 Ina 執行的 Migration
++| Migration | 優先級 | 說明 |
++|-----------|--------|------|
++| `add_lifetime_pulse_in_out_to_machines` | 🔴 HIGH | 新增 `lifetime_pulse_in/out` 欄位 |
++| `create_device_orphan_logs` | 🔴 HIGH | 孤兒脈衝記錄表 |
++| `create_machines_table` | 🟡 MED | WAW 2.0 硬體資產表（待 HQ 確認 lifetime_pulse 用途） |
++| `create_daily_revenue_reports` | 🟢 LOW | 日報表 |
++| `create_parameter_templates` | 🟢 LOW | 參數模板 |
+ 
+-### 已設定的 Cron 排程
+-| 指令 | 頻率 | 用途 |
++---
++
++## 🔍 最新驗證結果（TASK_SOPHIE_OWNER_VERIFY_20260620）
++
++### 欄位驗證
++| 欄位 | 狀態 | 說明 |
+ |------|------|------|
+-| `machines:check-pending` | 每日 08:00 | 掃描 7 天未上線設備並發送 device_alert |
+-| `check-subscription-expiry` | 每日 09:00（估） | 訂閱到期警示 |
+-| `accumulate-daily-arrears` | 每日 00:00（估） | 欠款累計 |
+-| `nightly-revenue-reconcile` | 每日 02:00（估） | 夜間財務對帳 |
++| `users.outstanding_amount` | ✅ 已執行 | Ina 已完成 Migration，後台欠款提示正常 |
++| `revenue_facts.transaction_type` | ✅ 正常運作 | 區分 credit_in (86,014 筆) / credit_out (15,379 筆) |
++| `lifetime_pulse_in/out` | ⚠️ 待建立 | 需 Ina 執行 Migration |
++
++### API 驗證
++```json
++{
++  "today_revenue": 39,
++  "today_credit_in": 120,
++  "today_credit_out": 81,
++  "lifetime_credit_in": 338922,
++  "lifetime_pulse": 0
++}
++```
++✅ Dashboard 統計正常，無 500 錯誤
++
++---
++
++## 🎯 待 HQ 裁示的項目
++
++1. **今日營收修復是否立即部署**
++   - `app/Models/Device.php` 取消註解後需 push + deploy
++   - 影響：後台今日營收統計恢復正常
++
++2. **`lifetime_pulse` 欄位用途確認**
++   - 是否等於 `lifetime_pulse_in - lifetime_pulse_out`？
++   - 是否需要數據遷移？
++   - 是否應廢棄此欄位？
++
++3. **`revenue_facts` 是否需要 `cumulative_count`**
++   - 目前只有 `delta_value`
++   - 是否需要記錄累計值？
++
++---
++
++## 🔌 系統服務清單
++
++| 服務 | 狀態 | 說明 |
++|------|------|------|
++| Laravel Reverb | 🟢 運行中 | WebSocket port 6009 |
++| MySQL | ⚠️ 需隧道 | iotv9 @ infra 141.148.165.50，標準 SSH tunnel port 3308 |
++| Redis | ⚠️ 需隧道 | Redis @ infra 141.148.165.50，標準 SSH tunnel port 6380 |
++| Cron / Scheduler | 🟢 已設定 | `machines:check-pending` 每日 08:00 |
++
++---
++
++## 📊 工作統計（最近 2 天）
++
++**2026-06-20**:
++- 任務完成：1/1 (100%)
++- 程式碼修改：3 個檔案
++- 驗證完成：欄位語義、API 回傳、營收統計
++
++**2026-06-19**:
++- 任務完成：6/6 (100%)
++- 部署次數：2 次
++- 回報檔案：6 份
+ 
+ ---
+ 
+-## 🧠 神經網路文件結構
++## 🧠 神經網路文件結構（已整理）
+ 
+ ```
+ waw-core/
+@@ -76,25 +165,20 @@ ## 🧠 神經網路文件結構
+ ├── _agent/
+ │   ├── SOPHIE_STATUS.md             ← 本文件（分身速查）
+ │   ├── DB_MANIFEST.md               ← 資料庫現況（設計任務必讀）
+-│   ├── REDIS_*.json                 ← HQ 派發的任務/諮詢收件匣
++│   ├── REDIS_*.json                 ← HQ 派發的任務收件匣
+ │   ├── REPORT_*.md                  ← Sophie 回報檔
+-│   └── governance → HQ/brains/governance（軟連結）
++│   └── governance → HQ/brains/governance
+ ├── .kiro/
+ │   ├── steering/
+-│   │   ├── identity.md              ← 角色定位（含待部署清單）
+-│   │   ├── v9-knowledge.md          ← 技術架構詳細
+-│   │   ├── known-bugs.md            ← 已知漏洞與修復記錄
+-│   │   ├── coding-standards.md      ← 編碼規範
+-│   │   └── 01~04_*.md              ← HQ Agent 治理規範（軟連結）
++│   │   ├── identity.md              ← 角色定位
++│   │   ├── v9-knowledge.md          ← 技術架構
++│   │   ├── known-bugs.md            ← 已知漏洞
++│   │   └── deploy-to-production.md  ← 部署 SOP
+ │   ├── memory/
+-│   │   └── sophie_rules.md          ← Sophie 常識記憶（踩坑紀錄）
+-│   └── skills/
+-│       ├── deploy-to-production.md  ← 部署 SOP
+-│       ├── device-state-machine.md  ← 設備狀態機
+-│       ├── profit-sharing-flow.md   ← 分潤流程
+-│       └── subscription-logic.md   ← 訂閱邏輯
++│   │   └── sophie_rules.md          ← Sophie 記憶
++│   └── skills/                      ← 業務流程文件
+ ```
+ 
+ ---
+ 
+-*Sophie 簽署：2026-06-19 分身整理完畢，HQ 可隨時派任務。*
++*Sophie 簽署：2026-06-21 02:05 — 分身狀態正常，已注入 HQ DB 連線與治理常識，隨時待命接受新任務。*
+diff --git a/app/Http/Controllers/Api/V9/DeviceTypeController.php b/app/Http/Controllers/Api/V9/DeviceTypeController.php
+index 8e91579..5bc9779 100644
+--- a/app/Http/Controllers/Api/V9/DeviceTypeController.php
++++ b/app/Http/Controllers/Api/V9/DeviceTypeController.php
+@@ -15,7 +15,7 @@ class DeviceTypeController extends Controller
+      */
+     public function index(): JsonResponse
+     {
+-        $types = DeviceType::orderBy('name')->get(['id', 'name', 'created_at']);
++        $types = DeviceType::orderBy('name')->get(['id', 'name', 'code', 'pulse_per_token']);
+ 
+         return response()->json([
+             'message' => '機種列表獲取成功',
+@@ -31,6 +31,8 @@ public function store(Request $request): JsonResponse
+     {
+         $validated = $request->validate([
+             'name' => ['required', 'string', 'max:50'],
++            'code' => ['required', 'string', 'max:64', 'unique:device_types,code'],
++            'pulse_per_token' => ['nullable', 'numeric', 'min:0'],
+         ]);
+ 
+         // Case-insensitive 唯一性檢查
+@@ -44,12 +46,13 @@ public function store(Request $request): JsonResponse
+ 
+         $type = DeviceType::create([
+             'name' => $validated['name'],
+-            'created_by' => auth()->id(),
++            'code' => $validated['code'],
++            'pulse_per_token' => $validated['pulse_per_token'] ?? 1.00,
+         ]);
+ 
+         return response()->json([
+             'message' => '機種新增成功',
+-            'data' => $type->only(['id', 'name', 'created_at']),
++            'data' => $type->only(['id', 'name', 'code', 'pulse_per_token']),
+         ], 201);
+     }
+ 
+diff --git a/app/Models/Device.php b/app/Models/Device.php
+index db8e38c..876dc62 100644
+--- a/app/Models/Device.php
++++ b/app/Models/Device.php
+@@ -149,14 +149,14 @@ public function getPeriodStats(string $range): array
+         
+         // Sum delta_value (incremental changes) from revenue_facts for this period
+         $periodCreditIn = RevenueFact::where('device_id', $this->id)
+-            // ->where('transaction_type', 'credit_in') // 臨時註釋避免500錯誤
++            ->where('transaction_type', 'credit_in')
+             ->where('event_ts', '>=', $startDate)
+             ->where('is_valid', true)
+             ->sum('delta_value') ?: 0;
+         
+         // Sum delta_value (incremental changes) from revenue_facts for this period
+         $periodCreditOut = RevenueFact::where('device_id', $this->id)
+-            // ->where('transaction_type', 'credit_out') // 臨時註釋避免500錯誤
++            ->where('transaction_type', 'credit_out')
+             ->where('event_ts', '>=', $startDate)
+             ->where('is_valid', true)
+             ->sum('delta_value') ?: 0;
+diff --git a/app/Models/DeviceType.php b/app/Models/DeviceType.php
+index 965cbe6..d2fd4ce 100644
+--- a/app/Models/DeviceType.php
++++ b/app/Models/DeviceType.php
+@@ -7,14 +7,12 @@
+ 
+ class DeviceType extends Model
+ {
+-    public $timestamps = false;
+-    const CREATED_AT = 'created_at';
+-    const UPDATED_AT = null;
+-
+-    protected $fillable = ['name', 'created_by'];
++    protected $fillable = ['name', 'code', 'pulse_per_token'];
+ 
+     protected $casts = [
++        'pulse_per_token' => 'decimal:2',
+         'created_at' => 'datetime',
++        'updated_at' => 'datetime',
+     ];
+ 
+     public function devices(): HasMany
+diff --git a/database/migrations/_migration_proposals/MODEL_MIGRATION_CHECKLIST.md b/database/migrations/_migration_proposals/MODEL_MIGRATION_CHECKLIST.md
+index d5bc459..c56f566 100644
+--- a/database/migrations/_migration_proposals/MODEL_MIGRATION_CHECKLIST.md
++++ b/database/migrations/_migration_proposals/MODEL_MIGRATION_CHECKLIST.md
+@@ -1,5 +1,8 @@
+ # WAW 2.0 Phase 3: Model 遷移清單
+ 
++
++**[On-Demand]** — 上下文注入策略
++
+ > **任務 ID**: R20_PHASE3_2  
+ > **建立日期**: 2026-06-11  
+ > **負責人**: Sophie (wawOwner)  
+diff --git a/database/seeders/README.md b/database/seeders/README.md
+index e7d5599..b2c2025 100644
+--- a/database/seeders/README.md
++++ b/database/seeders/README.md
+@@ -1,5 +1,8 @@
+ # Database Seeders
+ 
++
++**[On-Demand]** — 上下文注入策略
++
+ ## 緊急數據恢復指南
+ 
+ 當數據被意外刪除時，使用以下步驟恢復：

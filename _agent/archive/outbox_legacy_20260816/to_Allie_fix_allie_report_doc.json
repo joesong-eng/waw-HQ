@@ -1,0 +1,1 @@
+{"type": "task", "task_id": "fix_allie_report_doc", "to_agent": "Allie", "priority": "normal", "description": "修正 Allie 的 README 與通訊回報設定，確認回報使用統一的 agent_report_to_hq_v2.sh 腳本而不是單純用內部程式碼直連 Redis 頻道，更新相關 scaffold 說明並實際回報一次。"}

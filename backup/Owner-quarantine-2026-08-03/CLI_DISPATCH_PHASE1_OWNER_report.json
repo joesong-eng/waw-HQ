@@ -1,0 +1,46 @@
+{
+  "task_id": "CLI_DISPATCH_PHASE1_OWNER",
+  "status": "needs_review",
+  "summary": "已在 Owner 專案建立 Sophie CLI 的 inbox/outbox 任務派發規範、任務上下文與安全檢查規則，以及可機器驗證的 JSON 回報 schema；未變更 Laravel 應用程式或資料庫。由於指定的 CLI_AGENT_DISPATCH_DESIGN.md 不在 HQ 提供的可讀候選位置，請 HQ 核對本實作與原始設計文件。",
+  "evidence": [
+    {
+      "kind": "file",
+      "path": "/Users/ilawusong/Documents/WaW/Owner/AGENTS.md",
+      "detail": "新增 HQ CLI 任務派發協議，定義 inbox 讀取、task_id 一致性、context_files 路徑保護、Owner 職責限制與 outbox 寫入要求。"
+    },
+    {
+      "kind": "file",
+      "path": "/Users/ilawusong/Documents/WaW/Owner/_agent/CLI_AGENT_DISPATCH.md",
+      "detail": "定義任務 JSON、必讀上下文、受阻處理、回報欄位與原子寫入規則；SHA-256: 0d79dba814c110bfacc989376d69597f47098e559fa9d80886f94bd26c349fc0。"
+    },
+    {
+      "kind": "file",
+      "path": "/Users/ilawusong/Documents/WaW/Owner/_agent/outbox/report.schema.json",
+      "detail": "定義 task_id、status、summary、evidence、requires_review、blocked、sub_tasks 必填欄位與 completed/blocked 條件；SHA-256: d259e68e6d805fe3bc09287656472337bb12e72b9c7f2e23c0938d8170e408ee。"
+    },
+    {
+      "kind": "test",
+      "path": "/Users/ilawusong/Documents/sysWawIot/waw-core/_agent/REDIS_20260801_162712_CLI_DISPATCH_PHASE1_OWNER.json",
+      "detail": "python3 解析成功，task_id 為 CLI_DISPATCH_PHASE1_OWNER，並通過 ^[A-Za-z0-9_-]+$ 驗證；canonical inbox 路徑為 /Users/ilawusong/Documents/WaW/Owner/_agent/inbox/CLI_DISPATCH_PHASE1_OWNER.json。"
+    }
+  ],
+  "requires_review": true,
+  "blocked": null,
+  "sub_tasks": [
+    {
+      "id": "owner_dispatch_protocol",
+      "status": "completed",
+      "summary": "建立 AGENTS.md 與 _agent/CLI_AGENT_DISPATCH.md 規範。"
+    },
+    {
+      "id": "outbox_report_schema",
+      "status": "completed",
+      "summary": "建立可驗證 JSON Schema 與 outbox 目錄。"
+    },
+    {
+      "id": "design_document_alignment",
+      "status": "needs_review",
+      "summary": "指定 CLI_AGENT_DISPATCH_DESIGN.md 未在 HQ 提供的可讀候選位置，請 HQ 提供或確認來源。"
+    }
+  ]
+}

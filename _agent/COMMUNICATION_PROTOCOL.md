@@ -4,7 +4,7 @@
 
 ## 1. 任務接收來源 (Task Sources)
 Agent 必須優先檢查以下目錄與機制以獲取 HQ 指派的任務：
-1. **Outbox**: 檢查 `_agent/outbox/to_AgentName.json`。
+1. **Outbox**: 檢查 `.taskbox/outbox/to_AgentName.json`。
 2. **Dispatch Board**: 檢查 `_agent/DISPATCH_BOARD.md` (這是彙整狀態的核心文件)。
 3. **Redis**: 監聽 `agent/Allie/task` 等專屬頻道 (若已建立連線)。
 
@@ -12,7 +12,7 @@ Agent 必須優先檢查以下目錄與機制以獲取 HQ 指派的任務：
 當 Agent 需要留言給 HQ 時，請依下列順序執行：
 
 ### A. 透過檔案系統 (推薦)
-1. 在 `_agent/inbox/` 建立檔案。
+1. 在 `.taskbox/inbox/` 建立檔案。
 2. 命名格式：`from_<AgentName>_<Topic>_<YYYYMMDD_HHMM>.md`。
 3. 內容：必須包含 `Task_ID` (若有)、`Status`、`Details` (Log 或執行結果路徑)。
 

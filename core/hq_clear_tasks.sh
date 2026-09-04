@@ -12,7 +12,7 @@ if [ -z "${AGENT_NAME}" ]; then
     exit 1
 fi
 
-OUTBOX_FILE="_agent/outbox/to_${AGENT_NAME}.json"
+OUTBOX_FILE=".taskbox/outbox/to_${AGENT_NAME}.json"
 
 if [ -f "${OUTBOX_FILE}" ]; then
     rm "${OUTBOX_FILE}"

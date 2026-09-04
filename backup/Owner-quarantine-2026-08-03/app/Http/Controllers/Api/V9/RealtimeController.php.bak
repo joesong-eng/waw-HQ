@@ -1,0 +1,347 @@
+<?php
+
+namespace App\Http\Controllers\Api\V9;
+
+use App\Http\Controllers\Controller;
+use App\Models\Device;
+use App\Models\Machine;
+use App\Models\DeviceSnapshot;
+use App\Models\RevenueFact;
+use App\Models\DeviceCommandLog;
+use App\Services\PulseConverter;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+
+/**
+ * Realtime Dashboard API Controller (Refactored for WAW 2.0)
+ * 
+ * 業務邏輯已遷移至 Machine Model
+ * Controller 負責請求處理和 API 欄位向後相容
+ */
+class RealtimeController extends Controller
+{
+    protected PulseConverter $pulseConverter;
+
+    public function __construct(PulseConverter $pulseConverter)
+    {
+        $this->pulseConverter = $pulseConverter;
+    }
+
+    /**
+     * Get all devices with period statistics
+     * GET /api/v9/realtime/devices
+     *
+     * Query Parameters:
+     * - periodStart: ISO 8601 UTC timestamp (required)
+     *
+     * The realtime list and MQTT broadcast handler both use Device as their
+     * authoritative, monitorable-device record.  Reverb only supplies deltas;
+     * it must never be required to construct the initial list.
+     */
+    public function getDevices(Request $request)
+    {
+        $periodStartStr = $request->query('periodStart');
+
+        if (!$periodStartStr) {
+            return response()->json([
+                'error' => 'Bad Request',
+                'message' => 'periodStart parameter is required (ISO 8601 UTC timestamp)',
+            ], 400);
+        }
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // 生成緩存鍵
+        $cacheKey = 'realtime_devices_' . $user->id . '_' . md5($periodStartStr);
+        
+        // 嘗試從緩存獲取數據（緩存 30 秒）
+        $cachedData = Cache::get($cacheKey);
+        if ($cachedData) {
+            Log::info('Realtime API: Returned from cache', [
+                'periodStart' => $periodStartStr,
+                'user_id' => $user->id,
+                'cache_key' => $cacheKey,
+            ]);
+            return response()->json($cachedData);
+        }
+
+        Log::info('Realtime API: Device list requested', [
+            'periodStart' => $periodStartStr,
+            'user_id' => $user->id,
+            'ip' => $request->ip(),
+        ]);
+
+        try {
+            $periodStart = \Carbon\Carbon::parse($periodStartStr, 'UTC');
+
+            // 獲取在線狀態
+            $onlineStatusMap = $this->fetchOnlineStatus();
+
+            // Use the same Device records updated by InternalBroadcastController.
+            // Loading the list from DB ensures offline/silent devices render too.
+            $query = Device::query()
+                ->select('id', 'chip_id', 'owner_id', 'venue_id', 'name', 'type', 'last_seen_at', 'lifetime_credit_in', 'lifetime_credit_out', 'pulse_to_display', 'promo_budget_monthly', 'promo_budget_used')
+                ->with('venue:id,name')
+                ->whereNotNull('chip_id')
+                ->orderByDesc('id');
+
+            if ($user->role === 'admin') {
+                // Admin sees all monitorable devices.
+            } elseif ($user->role === 'owner') {
+                // Match the device-management visibility policy.
+                $query->where(function ($ownerQuery) use ($user) {
+                    $ownerQuery->where('owner_id', $user->id)
+                        ->orWhereHas('venue', fn ($venueQuery) => $venueQuery->where('owner_id', $user->id));
+                });
+            } else {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+
+            $devices = $query->get();
+            $deviceIds = $devices->pluck('id');
+
+            // Aggregate once for the initial DB/API response, rather than
+            // depending on a later Reverb event for values on each card.
+            $creditIn = RevenueFact::whereIn('device_id', $deviceIds)
+                ->where('event_ts', '>=', $periodStart)
+                ->where('is_valid', true)
+                ->where('transaction_type', 'credit_in')
+                ->groupBy('device_id')
+                ->selectRaw('device_id, SUM(delta_value) as total')
+                ->pluck('total', 'device_id');
+            $creditOut = RevenueFact::whereIn('device_id', $deviceIds)
+                ->where('event_ts', '>=', $periodStart)
+                ->where('is_valid', true)
+                ->where('transaction_type', 'credit_out')
+                ->groupBy('device_id')
+                ->selectRaw('device_id, SUM(delta_value) as total')
+                ->pluck('total', 'device_id');
+
+            $mapped = $devices->map(function (Device $device) use ($onlineStatusMap, $creditIn, $creditOut) {
+                $chipId = strtolower($device->chip_id);
+                $periodCreditIn = (int) ($creditIn[$device->id] ?? 0);
+                $periodCreditOut = (int) ($creditOut[$device->id] ?? 0);
+
+                return [
+                    'id' => $device->id,
+                    'chip_id' => $device->chip_id,
+                    'name' => $device->name,
+                    'venue_name' => $device->venue?->name ?? '未分配',
+                    'status' => ($onlineStatusMap[$chipId] ?? 'offline') === 'online' ? 'online' : 'offline',
+                    'last_seen_at' => $device->last_seen_at?->toIso8601String(),
+                    'period_credit_in' => $periodCreditIn,
+                    'period_credit_out' => $periodCreditOut,
+                    'period_net' => $periodCreditIn - $periodCreditOut,
+                    'lifetime_credit_in' => (int) $device->lifetime_credit_in,
+                    'lifetime_credit_out' => (int) $device->lifetime_credit_out,
+                    'pulse_to_display' => (int) ($device->pulse_to_display ?? 1),
+                    'promo_budget_monthly' => (float) ($device->promo_budget_monthly ?? 0),
+                    'promo_budget_used' => (float) ($device->promo_budget_used ?? 0),
+                ];
+            });
+
+            $responseData = [
+                'devices' => $mapped,
+                'summary' => [
+                    'total' => $mapped->count(),
+                    'online' => $mapped->where('status', 'online')->count(),
+                    'offline' => $mapped->where('status', 'offline')->count(),
+                ]
+            ];
+
+            // 緩存結果
+            Cache::put($cacheKey, $responseData, 30);
+
+            return response()->json($responseData);
+
+        } catch (\Exception $e) {
+            Log::error('Realtime API: Failed to fetch devices', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Internal Server Error',
+                'message' => 'Failed to fetch device list',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get device command history
+     * GET /api/v9/realtime/devices/{chipId}/commands
+     */
+    public function getCommandHistory(string $chipId)
+    {
+        try {
+            $device = Device::where('chip_id', strtolower($chipId))->first();
+
+            if ($device) {
+                $logs = $device->commandLogs()
+                    ->orderByDesc('created_at')
+                    ->limit(50)
+                    ->get()
+                    ->map(function ($log) {
+                        return [
+                            'id' => $log->id,
+                            'command_type' => $log->command_type,
+                            'status' => $log->status,
+                            'estimated_amount' => $log->estimated_amount,
+                            'actual_amount' => $log->actual_amount,
+                            'payload' => $log->request_payload,
+                            'response_payload' => $log->response_payload,
+                            'created_at' => $log->created_at->toIso8601String(),
+                            'updated_at' => $log->updated_at->toIso8601String(),
+                        ];
+                    });
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $logs
+                ]);
+            }
+
+            // 向後相容：回退到直接查詢
+            $logs = DeviceCommandLog::where('chip_id', strtolower($chipId))
+                ->orderBy('created_at', 'desc')
+                ->limit(50)
+                ->get()
+                ->map(function ($log) {
+                    return [
+                        'id' => $log->id,
+                        'command' => $log->command,
+                        'status' => $log->status,
+                        'requested_amount' => $log->requested_amount,
+                        'actual_amount' => $log->actual_amount,
+                        'payload' => $log->request_payload,
+                        'response_payload' => $log->response_payload,
+                        'created_at' => $log->created_at->toIso8601String(),
+                        'updated_at' => $log->updated_at->toIso8601String(),
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $logs
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Realtime API: Failed to fetch command history', [
+                'chip_id' => $chipId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch command history'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get radar devices with period statistics
+     * GET /api/v9/radar/devices
+     */
+    public function getRadarDevices(Request $request)
+    {
+        $range = $request->query('range', 'day');
+
+        // Calculate baseline time
+        $baselineDate = match ($range) {
+            'week' => now()->startOfWeek(),
+            'month' => now()->startOfMonth(),
+            default => now()->startOfDay(),
+        };
+
+        // Fetch baselines for all devices
+        $baselines = DeviceSnapshot::where('snapshot_at', '>=', $baselineDate)
+            ->orderBy('snapshot_at', 'asc')
+            ->get()
+            ->groupBy('chip_id')
+            ->map(fn($group) => $group->first());
+
+        // 優先使用 Machine Model
+        $machines = Machine::select('id', 'chip_id', 'name', 'type', 'last_seen_at', 'lifetime_credit_in', 'lifetime_credit_out')
+            ->get();
+
+        // Fetch online status
+        $onlineStatusMap = $this->fetchOnlineStatus();
+
+        $mapped = $machines->map(function ($machine) use ($baselines, $onlineStatusMap) {
+            $baseline = $baselines->get(strtolower($machine->chip_id));
+            $periodCreditIn = 0;
+            $periodCreditOut = 0;
+
+            if ($baseline) {
+                $periodCreditIn = max(0, $machine->lifetime_credit_in - $baseline->lifetime_credit_in);
+                $periodCreditOut = max(0, $machine->lifetime_credit_out - $baseline->lifetime_credit_out);
+            }
+
+            $chipIdLower = strtolower($machine->chip_id);
+            $isOnline = ($onlineStatusMap[$chipIdLower] ?? 'offline') === 'online';
+
+            return [
+                'id' => $machine->id,
+                'chip_id' => $machine->chip_id,
+                'name' => $machine->name,
+                'venue_id' => null, // TODO: 從 deployment 獲取
+                'venue_name' => '未分配',
+                'type' => $machine->type,
+                'is_online' => $isOnline,
+                'last_seen_at' => $machine->last_seen_at?->toIso8601String(),
+                'lifetime_credit_in' => $machine->lifetime_credit_in,
+                'lifetime_credit_out' => $machine->lifetime_credit_out,
+                'period_credit_in' => $periodCreditIn,
+                'period_credit_out' => $periodCreditOut,
+            ];
+        });
+
+        return response()->json([
+            'devices' => $mapped,
+            'summary' => [
+                'total' => $mapped->count(),
+                'online' => $mapped->where('is_online', true)->count(),
+                'offline' => $mapped->where('is_online', false)->count(),
+            ]
+        ]);
+    }
+
+    /**
+     * Device online status snapshot (proxies infra Redis)
+     * GET /api/v9/devices/online-status
+     */
+    public function getOnlineStatus()
+    {
+        $statusMap = $this->fetchOnlineStatus();
+        
+        return response()->json([
+            'data' => $statusMap,
+        ]);
+    }
+
+    /**
+     * Fetch online status from infra Redis
+     */
+    private function fetchOnlineStatus(): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'X-Internal-Key' => config('services.infra.internal_key'),
+            ])->get('https://api.tg25.win/api/device/online-status');
+
+            if ($response->successful()) {
+                return $response->json('data', []);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to fetch online-status from infra', ['error' => $e->getMessage()]);
+        }
+
+        return [];
+    }
+}

@@ -27,3 +27,20 @@ brains/knowledge/
 - 兩種韌體主題不可混淆：`kiosk/{chip_id}/`（kiosk_v0）vs `device/{chip_id}/`（game_v0）
 - 發任務前三確認：資料來源、通訊主題、系統邊界
 - 完整文件清單見 `DOCUMENT_INDEX.md`
+
+---
+
+## 🆕 最新更新 (2026-08-19)
+
+### 系統架構文檔
+- **[WAW Core System Assessment](./03_system_architecture/WAW_CORE_SYSTEM_ASSESSMENT.md)**
+  - Laravel 11 IoT 平台完整評估
+  - 基於代碼分析，非 .env.example
+  - 包含架構、API、業務流程、技術債
+
+### 評估方法論
+- ✅ 從代碼與 config 檔案分析
+- ✅ 明確標註需從生產環境確認的項目
+- ✅ 整合知識庫既有文檔
+- ❌ 不依賴 .env.example 評估生產環境
+

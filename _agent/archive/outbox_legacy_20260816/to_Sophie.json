@@ -1,0 +1,1 @@
+{"type": "task", "task_id": "TASK_20260805_OWNER_REVERB_CONFIG", "to_agent": "Sophie", "priority": "1", "description": "將 Owner 專案廣播設定改為 reverb，並確認前端即時頁面的 Reverb 連線配置以支援自動更新"}

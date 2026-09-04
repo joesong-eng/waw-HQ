@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Models;
+
+use Carbon\Carbon;
+use App\Models\RevenueFact;
+
+trait MachineExtensions
+{
+    /**
+     * 取得機台即時狀態資訊（正確版本）
+     */
+    public function getRealtimeStatus(Carbon $periodStart, ?string $venueName = null, bool $isOnline = false): array
+    {
+        $periodStats = $this->getPeriodStatistics($periodStart);
+
+        return [
+            'chip_id' => $this->chip_id,
+            'name' => $this->name,
+            'venue_name' => $venueName ?? '未分配',
+            'status' => $isOnline ? 'online' : 'offline',
+            'last_seen_at' => $this->last_seen_at?->toIso8601String(),
+            'period_credit_in' => $periodStats['period_credit_in'],
+            'period_credit_out' => $periodStats['period_credit_out'],
+            'period_net' => $periodStats['period_net'],
+            'lifetime_credit_in' => (int) $this->lifetime_credit_in,
+            'lifetime_credit_out' => (int) $this->lifetime_credit_out,
+            'pulse_to_display' => $this->pulse_to_display ?? 1,
+        ];
+    }
+
+    /**
+     * 取得期間統計（正確版本 - 使用 delta_value 判斷方向）
+     */
+    public function getPeriodStatistics(Carbon $periodStart): array
+    {
+        try {
+            // 🎯 使用 delta_value 判斷入金/出金方向（RevenueCalculationService 的邏輯）
+            $periodCreditIn = RevenueFact::where('chip_id', strtolower($this->chip_id))
+                ->where('event_ts', '>=', $periodStart)
+                ->where('is_valid', true)
+                ->where('delta_value', '>', 0)
+                ->sum('amount') ?: 0;
+
+            $periodCreditOut = RevenueFact::where('chip_id', strtolower($this->chip_id))
+                ->where('event_ts', '>=', $periodStart)
+                ->where('is_valid', true)
+                ->where('delta_value', '<', 0)
+                ->sum('amount') ?: 0;
+
+            // 出金通常是負值，取絕對值
+            $periodCreditOut = abs($periodCreditOut);
+            
+        } catch (\Exception $e) {
+            // 如果還有其他 DB 問題，回傳安全預設值
+            $periodCreditIn = 0;
+            $periodCreditOut = 0;
+        }
+
+        return [
+            'period_credit_in' => (int) $periodCreditIn,
+            'period_credit_out' => (int) $periodCreditOut,
+            'period_net' => (int) ($periodCreditIn - $periodCreditOut),
+        ];
+    }
+}

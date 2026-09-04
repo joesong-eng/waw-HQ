@@ -60,7 +60,7 @@ scripts/message_hub_v2/
 │  └──────┬───────┘                              │
 │         │                                       │
 │         ▼                                       │
-│  _agent/outbox/to_<agent>.json                 │
+│  .taskbox/outbox/to_<agent>.json                 │
 └─────────────────────────────────────────────────┘
 ```
 

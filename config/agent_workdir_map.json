@@ -1,0 +1,12 @@
+{
+  "agents": {
+    "hq": "/Users/ilawusong/Documents/WaW",
+    "ina": "/Users/ilawusong/Documents/WaW/PROJECT/Infra",
+    "sophie": "/Users/ilawusong/Documents/WaW/PROJECT/Owner",
+    "mina": "/Users/ilawusong/Documents/WaW/PROJECT/Member",
+    "allie": "/Users/ilawusong/Documents/WaW/PROJECT/Alliance",
+    "hubie": "/Users/ilawusong/Documents/WaW/PROJECT/iHub",
+    "coli": "/Users/ilawusong/Documents/WaW/PROJECT/IOTwawS3",
+    "fio": "/Users/ilawusong/Documents/WaW/PROJECT/IOTkiosk_v0"
+  }
+}
