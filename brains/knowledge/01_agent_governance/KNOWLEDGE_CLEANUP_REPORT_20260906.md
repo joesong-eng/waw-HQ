@@ -155,3 +155,55 @@ if [ -f package.json ]; then pnpm install && pnpm build; fi && php artisan migra
 
 **維護者**: HQ  
 **下次檢討**: 當新增 Agent 或新增 VPS 時，必須同步更新 `VPS_TOPOLOGY_CARD.md` 與對應 `AGENTS.md`。
+
+---
+
+## 📝 補充更新（2026-09-06 下午）
+
+### 追加注入：禁止直接修改遠端文件的鐵律
+
+**背景**：為防止 Agent 在遠端 VPS 上直接編輯代碼，導致版本失控與本機代碼不同步。
+
+**執行內容**：
+- 為全部 8 位 Agent 的 `AGENTS.md` 注入「嚴禁直接修改遠端文件」章節
+- 明確規範：本機修改 → Git commit/push → 遠端 pull 的標準流程
+- 定義例外情況：僅 `.env` 等配置文件可在遠端直接修改
+- 列舉嚴禁做法：SSH 遠端 vim 編輯、sed -i 修改代碼等
+- 說明版本控制的 5 大好處
+
+**影響 Agent**：
+- Sidney (SignalHub)
+- Sophie (Owner)
+- Mina (Member)
+- Allie (Alliance)
+- Hubie (iHub)
+- Ina (Infra)
+- Fio (IOTkiosk_v0)
+- Coli (IOTwawS3)
+
+**預期效果**：
+- 杜絕遠端直接修改代碼的行為
+- 確保所有代碼變更都有 Git 歷史記錄
+- 保持本機與遠端代碼同步
+- 出問題時可快速回滾與定位
+
+---
+
+## 📊 最終統計
+
+| 項目 | 數量 |
+|------|------|
+| 知識庫目錄合併 | 5 組 |
+| 文件鏈接修復 | 46 個 |
+| Agent AGENTS.md 重構 | 8 個 |
+| 新建權威文檔 | 1 個 (VPS_TOPOLOGY_CARD.md) |
+| 注入環境卡 | 8 個 Agent |
+| 注入部署規範 | 5 個 Web Agent |
+| 注入遠端編輯禁令 | 8 個 Agent |
+| 工具強化 | 1 個 (waw_ops.sh) |
+| 啟動協議升級 | v2.0.0 → v2.2.0 |
+
+---
+
+**維護者**: HQ  
+**完成時間**: 2026-09-06 14:20 (UTC+8)
