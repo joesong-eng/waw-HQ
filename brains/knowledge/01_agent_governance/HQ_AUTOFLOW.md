@@ -198,7 +198,7 @@ redis-cli SET "hq:thread:<id>:status" resolved
 - `scripts/agent_report_to_hq_v2.sh` — Agent 回報腳本（Redis PUBLISH）
 - `brains/knowledge/01_agent_governance/MESSAGE_HUB_PROTOCOL.md` — 通訊協定
 - `brains/knowledge/01_agent_governance/AUTOFLOW_CONTEXT_STORE_DESIGN.md` — 設計演進歷史
-- `brains/knowledge/04_ops_and_deployments/LAUNCHD_AGENT_ARCHITECTURE.md` — launchd 架構
+- `brains/knowledge/04_deployment_operations/LAUNCHD_AGENT_ARCHITECTURE.md` — launchd 架構
 - `.kiro/specs/hq-gateway/design.md` — 原始設計規格（Qoder 使用）
 
 ---

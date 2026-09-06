@@ -147,7 +147,7 @@ Joe 重開 HQ session，閱讀回報，繼續決策
   "context_files": [
     "_agent/IDENTITY.md",
     "_agent/DB_MANIFEST.md",
-    "brains/knowledge/05_product_and_business_flows/commission_flow.md"
+    "brains/knowledge/05_business_flows/commission_flow.md"
   ],
   "constraints": [
     "不修改現有 migration，新增獨立 migration 檔",

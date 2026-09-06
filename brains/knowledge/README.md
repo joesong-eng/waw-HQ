@@ -8,12 +8,12 @@
 
 ```
 brains/knowledge/
-├── 01_agent_governance_rules/     # Agent 協作規範（執行、職責、任務路由）
+├── 01_agent_governance/     # Agent 協作規範（執行、職責、任務路由）
 ├── 01_agent_governance/     # HQ Message Hub 系統文件
-├── 02_protocols_and_standards/  # 技術標準（MQTT、WebSocket、硬體脈衝）
-├── 03_system_architecture_designs/  # 系統架構（文件已移至業務域目錄）
-├── 04_ops_and_deployments/ # 部署與基礎設施
-├── 05_product_and_business_flows/       # 業務流程（按域分目錄）
+├── 02_technical_standards/  # 技術標準（MQTT、WebSocket、硬體脈衝）
+├── 03_system_architecture/  # 系統架構（文件已移至業務域目錄）
+├── 04_deployment_operations/ # 部署與基礎設施
+├── 05_business_flows/       # 業務流程（按域分目錄）
 │   ├── kiosk_v0_exchange/            # IOTkiosk_v0 業務域
 │   └── game_v0_arcade/             # IOTwawS3 業務域
 ├── 06_deprecated/           # 已棄用文件

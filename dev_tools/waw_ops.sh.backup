@@ -16,7 +16,7 @@ agent_to_module() {
         hubie|ihub) echo "ihub";;
         fio|kiosk|iotkiosk_v0) echo "fio";;
         coli|waws3|iotwaws3) echo "coli";;
-         sidney|signalhub|signal) echo "signalhub";;
+         signalhub|signalhub|signal) echo "signalhub";;
         *) echo "${name}";;
     esac
 }
@@ -137,7 +137,7 @@ cmd_deploy() {
 
     case "${type}" in
         laravel)
-            local deploy_cmd="cd ${path} && git pull origin main && if [ -f package.json ]; then pnpm install && pnpm build; fi && php artisan migrate --force && php artisan view:clear && php artisan config:cache && php artisan cache:clear"
+            local deploy_cmd="cd ${path} && git pull origin main && pnpm install && pnpm build && php artisan migrate --force && php artisan view:clear && php artisan config:cache && php artisan cache:clear"
             if [ "${service}" != "none" ]; then
                 deploy_cmd="${deploy_cmd} && sudo systemctl restart ${service}"
             fi
@@ -188,4 +188,3 @@ case "$1" in
     log) tail -n 30 "${LOG_FILE}" ;;
     *) print_help ;;
 esac
-

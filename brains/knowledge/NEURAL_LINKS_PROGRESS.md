@@ -22,7 +22,7 @@
 - ✅ `MESSAGE_HUB_V2_DEPLOYMENT.md`
 - ✅ `MESSAGE_HUB_V2_STATUS.md`
 
-### 01_agent_governance_rules/ (Agent 治理規章)
+### 01_agent_governance/ (Agent 治理規章)
 - ✅ `AGENT_EXECUTION_PROTOCOL.md`
 - ✅ `AGENT_RESPONSIBILITY_BOUNDARIES.md`
 - ✅ `AGENT_COLLABORATION_PROTOCOL.md`
@@ -32,17 +32,17 @@
 - ✅ `DOCUMENT_CONSISTENCY_RULES.md`
 - ✅ `FILE_REGISTRATION_SYSTEM.md`
 
-### 02_protocols_and_standards/ (協定與標準)
+### 02_technical_standards/ (協定與標準)
 - ✅ `TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md`
 - ✅ `WEBSOCKET_CHANNEL_STANDARD.md`
 - ✅ `QRCODE_FORMAT_STANDARD.md`
 - ✅ `ESP32_COMMON_SDK_SPEC.md`
 
-### 03_system_architecture_designs/ (系統架構設計)
+### 03_system_architecture/ (系統架構設計)
 - ✅ `WAW_2.0_ARCHITECTURE_SPEC.md`
 - ✅ `V9_SYSTEM_SPLITTING_DESIGN.md`
 
-### 04_ops_and_deployments/ (運維與部署)
+### 04_deployment_operations/ (運維與部署)
 - ✅ `INFRASTRUCTURE_REFERENCE.md`
 - ✅ `DEPLOYMENT_GUIDE.md`
 - ✅ `V9_OPS_AUTOMATION.md`
@@ -51,7 +51,7 @@
 - ✅ `MEMBER_DEPLOYMENT_GUIDE.md`
 - ✅ `LAUNCHD_AGENT_ARCHITECTURE.md`
 
-### 05_product_and_business_flows/ (產品與業務流)
+### 05_business_flows/ (產品與業務流)
 - ✅ `kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md`
 - ✅ `kiosk_v0_exchange/KIOSK_IDENTIFICATION_SYSTEM.md`
 - ✅ `kiosk_v0_exchange/KIOSK_UX_AND_SCREEN_DESIGN.md`

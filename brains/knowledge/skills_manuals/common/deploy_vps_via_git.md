@@ -78,12 +78,12 @@ ssh {SSH_ALIAS} "cd {VPS_PROJECT_PATH} && git fetch origin {BRANCH} && git reset
 ### 強關聯（必讀）
 > 修改或參考本部署技能前，必須先閱讀以下文件
 
-- `brains/knowledge/04_ops_and_deployments/DEPLOYMENT_GUIDE.md` - 遠端 VPS 部署與割接指南
-- `brains/knowledge/04_ops_and_deployments/INFRASTRUCTURE_REFERENCE.md` - 基礎設施別名與資料庫快速參考
+- `brains/knowledge/04_deployment_operations/DEPLOYMENT_GUIDE.md` - 遠端 VPS 部署與割接指南
+- `brains/knowledge/04_deployment_operations/INFRASTRUCTURE_REFERENCE.md` - 基礎設施別名與資料庫快速參考
 - `brains/knowledge/DOCUMENT_INDEX.md` - 知識庫總索引檔案
 
 ### 中關聯（建議讀）
 > 深入了解 Agent 的職責與通訊流程，建議閱讀
 
 - `brains/knowledge/01_agent_governance/MESSAGE_HUB_PROTOCOL.md` - 任務派發與 Pub/Sub 協議
-- `brains/knowledge/01_agent_governance_rules/AGENT_RESPONSIBILITY_BOUNDARIES.md` - Agent 職責邊界限制
+- `brains/knowledge/01_agent_governance/AGENT_RESPONSIBILITY_BOUNDARIES.md` - Agent 職責邊界限制

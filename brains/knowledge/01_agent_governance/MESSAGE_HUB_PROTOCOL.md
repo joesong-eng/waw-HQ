@@ -290,7 +290,7 @@ redis-cli info server   # 確認版本與狀態
 > 了解完整上下文，建議閱讀
 
 - `MESSAGE_HUB_V2_DEPLOYMENT.md` - 部署細節與 launchd 設定
-- `01_agent_governance_rules/AGENT_COLLABORATION_PROTOCOL.md` - 協作規範
+- `01_agent_governance/AGENT_COLLABORATION_PROTOCOL.md` - 協作規範
 
 ### 排除混淆
 > 容易混淆但已廢棄，不應再參考

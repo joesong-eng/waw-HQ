@@ -12,16 +12,17 @@
 
 | 規範文件 | 規範內容 | 適用範圍 | 違反後果 |
 | :--- | :--- | :--- | :--- |
-| `02_protocols_and_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md` 🔴 | 變數命名、API Header、MQTT Topic 與 Payload 唯一真理 | 所有系統 | 變數或主題不一致，造成系統通訊與金流中斷 |
-| `02_protocols_and_standards/WEBSOCKET_CHANNEL_STANDARD.md` 🔴 | WebSocket 頻道與事件類型標準 | Member / iHub | 前端無法收到即時事件，用戶體驗中斷 |
-| `02_protocols_and_standards/QRCODE_FORMAT_STANDARD.md` | QR Code URL 格式與參數名稱 | iHub / Alliance / Member | 用戶無法掃碼，服務完全中斷 |
+| `02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md` 🔴 | 變數命名、API Header、MQTT Topic 與 Payload 唯一真理 | 所有系統 | 變數或主題不一致，造成系統通訊與金流中斷 |
+| `02_technical_standards/WEBSOCKET_CHANNEL_STANDARD.md` 🔴 | WebSocket 頻道與事件類型標準 | Member / iHub | 前端無法收到即時事件，用戶體驗中斷 |
+| `02_technical_standards/QRCODE_FORMAT_STANDARD.md` | QR Code URL 格式與參數名稱 | iHub / Alliance / Member | 用戶無法掃碼，服務完全中斷 |
 | `NAMING_AUTHORITY.md` 🔴 | 全系統名稱定義來源唯一真理索引 | 所有系統 | 識別碼混用，資料關聯錯誤 |
+| `04_deployment_operations/VPS_TOPOLOGY_CARD.md` 🔴 | 全域主機拓撲、SSH 別名、DB 架構與連線禁令唯一真理 | 所有系統 / Agent | 盲打 IP、使用預設 Port 22、明文密碼外洩、連錯 DB |
 
 ---
 
 ## 📂 頂級分類結構 (Top-Level Directories)
 
-### 01_agent_governance_rules/ (Agent 治理規章)
+### 01_agent_governance/ (Agent 治理規章)
 定義 AI Agent 的執行協議、職責保護、軍令與文檔防流浪機制：
 - **[L1]** `README.md` (已完成) — Agent 治理規章導覽與目錄說明。
 - **[L1]** `AGENT_EXECUTION_PROTOCOL.md` (已完成) — 禁止試錯、診斷流程、執行前三確認。
@@ -36,7 +37,7 @@
 - **[L5]** `SYSTEM_FIX_PLAN_20260528.md` (已完成) — 全系統五大矛盾修復計劃。
 - **[L5]** `PHASED_ROLLOUT_PLAN_20260528.md` (已完成) — 全系統矛盾修復分階段割接計劃。
 
-### 02_protocols_and_standards/ (協定與標準)
+### 02_technical_standards/ (協定與標準)
 全系統底層通訊、硬體 SDK 與 Payload 格式的唯一強制性標準：
 - **[L3]** `TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md` (已完成) — 變數命名、Port、Header、Topic 與 Payload 標準。
 - **[L3]** `WEBSOCKET_CHANNEL_STANDARD.md` (已完成) — WebSocket 頻道與事件唯一真理。
@@ -46,7 +47,7 @@
 - **[L?]** `SIGNAL_FLOW_MONITOR.md` (待補充) — 信號流監控與可視化設計。
 - **[L?]** `DB_SCHEMA_WAW2_DELTA.md` (已完成) — WAW 2.0 資料庫增量更新規格（DDL），Ina 設計，HQ 批准。
 
-### 03_system_architecture_designs/ (系統架構設計)
+### 03_system_architecture/ (系統架構設計)
 系統整體解耦、人與物物理拆分及過渡割接方案：
 - **[L3]** `WAW_2.0_ARCHITECTURE_SPEC.md` (已完成) — WAW 2.0 事件平台核心架耦規格書。
 - **[L3]** `V9_SYSTEM_SPLITTING_DESIGN.md` (已完成) — waw-business 與 waw-iot 雙子專案物理拆分設計書。
@@ -55,7 +56,7 @@
 - **[L3]** `DATA_MONITORING_DASHBOARDS.md` (已完成) — 所有數據流監控頁面總覽：MQTT Terminal、Realtime Dashboard、Kiosk Engineering、Hardware Center。
 - **[L3]** `DATABASE_MIGRATION_STRATEGY.md` (已完成) — WAW 2.0 數據過渡與雙寫策略，Ina & Sophie 已實施（2026-06-12）。
 
-### 04_ops_and_deployments/ (運維與部署)
+### 04_deployment_operations/ (運維與部署)
 主機配置、SSH 別名、自動化部署與緊急回滾指南：
 - **[L4]** `INFRASTRUCTURE_REFERENCE.md` (已完成) — SSH 別名表、DB 架構、Nginx 配置。
 - **[L4]** `DEPLOYMENT_GUIDE.md` (已完成) — 各專案部署指令與緊急回滾。
@@ -69,7 +70,7 @@
 - [scripts/README.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/scripts/README.md) 🟢 (已更新) — HQ 核心維護腳本與全自動任務分發觸發工具手冊。
 - **[L4]** `LAUNCHD_AGENT_ARCHITECTURE.md` (已完成) — launchd Agent 架構設計原則與 com.hq.all_agents 廢棄記錄。
 
-### 05_product_and_business_flows/ (產品與業務流)
+### 05_business_flows/ (產品與業務流)
 依業務域分離的產品需求與底層交互流程細則：
 
 #### 1. kiosk_v0_exchange/ (兌幣機業務域)
@@ -265,29 +266,29 @@
 | **L5** | `knowledge/01_agent_governance/INCIDENT_LOG_20260618.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
 | **L1** | `knowledge/01_agent_governance/SPECIFICATION_UPDATE_20260617.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
 | **L1** | `knowledge/01_agent_governance/USER_MIGRATION_CLEANUP_PLAN_20260618.md` | Governance | Always Summary / On-Demand Full — 治理/執行規範，摘要 Always 或按任務指定 |
-| **L3** | `knowledge/02_protocols_and_standards/PULSE_BASED_DATA_FLOW.md` | Spec | On-Demand — 技術/協議標準，On-Demand |
-| **L3** | `knowledge/02_protocols_and_standards/USER_IDENTITY_VALIDATION_STANDARD.md` | Spec | On-Demand — 技術/協議標準，On-Demand |
+| **L3** | `knowledge/02_technical_standards/PULSE_BASED_DATA_FLOW.md` | Spec | On-Demand — 技術/協議標準，On-Demand |
+| **L3** | `knowledge/02_technical_standards/USER_IDENTITY_VALIDATION_STANDARD.md` | Spec | On-Demand — 技術/協議標準，On-Demand |
 | **L3** | `knowledge/02_technical_standards/DATABASE_CONNECTION_AND_GOVERNANCE.md` | Spec | On-Demand — 技術/協議標準，On-Demand |
 | **L3** | `knowledge/03_system_architecture/REVENUE_INTEGRATION.md` | Architecture | On-Demand — 架構設計，On-Demand |
-| **L3** | `knowledge/03_system_architecture_designs/MULTI_CHANNEL_DISPATCH_ARCHITECTURE.md` | Architecture | On-Demand — 架構設計，On-Demand |
-| **L4** | `knowledge/04_ops_and_deployments/WAW2_PULSE_INTEGER_IMPLEMENTATION_LOG_20260620.md` | Implementation | Never / Archive Only — 運維/部署實作，On-Demand |
-| **L4** | `knowledge/04_ops_and_deployments/WAW2_PULSE_INTEGER_INTEGRATION_20260620.md` | Implementation | Never / Archive Only — 運維/部署實作，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/WAW2_MIGRATION_FEASIBILITY.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/device_connectivity/DEVICE_CONNECTION_STATUS_FLOW.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/DESIGN_FINALIZED_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/INA_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/MINA_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/MINA_IMPLEMENTATION_COMPLETE_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/SOPHIE_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/TASK_INA_DB_AND_INFRA_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/TASK_MINA_MEMBER_IMPLEMENTATION_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/game_v0_arcade/TASK_SOPHIE_OWNER_VERIFY_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L3** | `knowledge/05_product_and_business_flows/waw2_migration/REVENUE_DATA_FLOW_SPEC.md` | Business Spec | On-Demand — 業務文件，On-Demand |
-| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260615.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
-| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260616.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
-| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260616_COMPLETED.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
-| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260616_FINAL.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
-| **L5** | `knowledge/05_product_and_business_flows/waw2_migration/WAW2_PROGRESS_20260617.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L3** | `knowledge/03_system_architecture/MULTI_CHANNEL_DISPATCH_ARCHITECTURE.md` | Architecture | On-Demand — 架構設計，On-Demand |
+| **L4** | `knowledge/04_deployment_operations/WAW2_PULSE_INTEGER_IMPLEMENTATION_LOG_20260620.md` | Implementation | Never / Archive Only — 運維/部署實作，On-Demand |
+| **L4** | `knowledge/04_deployment_operations/WAW2_PULSE_INTEGER_INTEGRATION_20260620.md` | Implementation | Never / Archive Only — 運維/部署實作，On-Demand |
+| **L3** | `knowledge/05_business_flows/WAW2_MIGRATION_FEASIBILITY.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/device_connectivity/DEVICE_CONNECTION_STATUS_FLOW.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/game_v0_arcade/DESIGN_FINALIZED_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/game_v0_arcade/INA_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/game_v0_arcade/MINA_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/game_v0_arcade/MINA_IMPLEMENTATION_COMPLETE_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/game_v0_arcade/SOPHIE_CONSULTATION_20260619.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/game_v0_arcade/TASK_INA_DB_AND_INFRA_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/game_v0_arcade/TASK_MINA_MEMBER_IMPLEMENTATION_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/game_v0_arcade/TASK_SOPHIE_OWNER_VERIFY_20260620.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L3** | `knowledge/05_business_flows/waw2_migration/REVENUE_DATA_FLOW_SPEC.md` | Business Spec | On-Demand — 業務文件，On-Demand |
+| **L5** | `knowledge/05_business_flows/waw2_migration/WAW2_PROGRESS_20260615.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/05_business_flows/waw2_migration/WAW2_PROGRESS_20260616.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/05_business_flows/waw2_migration/WAW2_PROGRESS_20260616_COMPLETED.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/05_business_flows/waw2_migration/WAW2_PROGRESS_20260616_FINAL.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
+| **L5** | `knowledge/05_business_flows/waw2_migration/WAW2_PROGRESS_20260617.md` | Archive/Log | Never / Archive Only — 記錄型文件，On-Demand，禁止預載 |
 | **L3** | `knowledge/06_alliance_system/MAINTENANCE_BEST_PRACTICES.md` | Business Spec | On-Demand — 業務文件，On-Demand |
 | **L3** | `knowledge/06_alliance_system/QUICK_DIAGNOSIS_SOP.md` | Business Spec | On-Demand — 業務文件，On-Demand |
 | **L3** | `knowledge/06_alliance_system/SEVEN_CRITICAL_FIXES.md` | Business Spec | On-Demand — 業務文件，On-Demand |

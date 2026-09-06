@@ -359,7 +359,7 @@ Owner 透過 `MqttCommandService` 呼叫 Infra API 進行硬體控制：
 - [MQTT Topic Standard](./02_technical_standards/MQTT_TOPIC_STANDARD.md)
 - [Revenue Integration](./REVENUE_INTEGRATION.md)
 - [Database Migration Strategy](./DATABASE_MIGRATION_STRATEGY.md)
-- [MQTT Terminal Deployment](./04_ops_and_deployments/MQTT_TERMINAL_DEPLOYMENT.md)
+- [MQTT Terminal Deployment](./04_deployment_operations/MQTT_TERMINAL_DEPLOYMENT.md)
 
 ---
 
