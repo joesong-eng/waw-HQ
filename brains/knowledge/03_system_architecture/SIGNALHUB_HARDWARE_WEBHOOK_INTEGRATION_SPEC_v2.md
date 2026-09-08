@@ -111,22 +111,26 @@
 
 ---
 
-### 2.3 雙軌返回模式 (同步原路返回 vs 異步 reply_url)
+### 2.3 雙軌返回模式：首選同步 vs 異步容錯補救措施 (Sync vs Async via reply_url)
 
-為了滿足不同第三方開發者的系統架構偏好，SignalHub 支援完全對等的雙軌返回機制：
+開分與洗分屬於實體營運與收銀結算行為，SignalHub 設計了「標準同步」與「異步容錯補救」雙軌機制：
 
-#### 模式一：同步原路返回 (首選、推薦)
-- **架構優勢**：無需任何額外 HTTP 往返與連線開銷，毫秒級完成。
-- **執行方式**：第三方接收端伺服器在接收到 SignalHub 的 POST 請求後，在同一個 HTTP 連線內，於 **3 秒內** 回傳 HTTP 200 OK，並在 HTTP Response Body 中直接附帶上述 JSON。
-- **適用場景**：第三方能快速完成開洗分記帳（絕大多數場景建議採用此方式）。
+#### 模式一：同步原路返回 (Sync - 官方標準與強烈首選)
+- **設計定位**：**標準流程**。開洗分是一筆即時交易，在同一 HTTP 連線內完成請求與結算最乾淨。
+- **架構優勢**：
+  - **一次閉環**：單次連線完成，無中間懸置狀態，毫秒級完成（耗時通常 < 50ms）。
+  - **零二次網路風險**：不需要第三方伺服器再對外建立連線，避免單向防火牆或網路阻斷。
+- **執行方式**：第三方接收端在收到 SignalHub 的 POST 請求後，在同一個 HTTP 連線內於 **3 秒內** 回傳 HTTP 200 OK，Body 攜帶完整點數 JSON。
 
-#### 模式二：異步回調 (備選，針對長耗時業務)
-- **架構優勢**：第三方無需保持長連線，避免因自身業務計算拖延造成 HTTP 超時斷線。
+#### 模式二：異步回調 (Async via reply_url - 針對爛網路與長延遲系統的容錯補救措施)
+- **設計定位**：**補救措施**。專為「第三方伺服器架構沉重、需跨多層遊戲主機核算、或網路品質低劣」所設計的容錯機制。
+- **解決的核心痛點**：
+  1. **防禦 HTTP 3 秒強行超時中斷**：第三方如果計算需要 4~5 秒，同步連線會被 SignalHub 的 3 秒保護機制判定逾時中斷並啟動 0s/3s/6s 連續重試。
+  2. **保護 SignalHub 後台工作佇列**：若無此補救，第三方慢速主機會將 SignalHub 的 Queue Worker 全部卡住乾等；透過異步機制，SignalHub 收到立即 ACK 後即可釋放 Worker 處理下一台機台。
 - **執行方式**：
-  1. 第三方收到 POST 請求後，立即回傳 HTTP 200 OK（空內容或表示收到）。
-  2. 第三方內部進行耗時結算或跨系統核算。
-  3. 結算完成後，在 **10 秒內** 主動向 Payload 中攜帶的 reply_url（如 https://signal.tg25.win/api/v9/signal-hub/callback-ack）發送 HTTP POST，Body 攜帶上述相同的 JSON 內容。
-  4. SignalHub 接收到該 POST 後，根據 delivery_id 自動將對應記錄更新為 success，並記錄實際點數 actual_points。
+  1. **第一階段（立即 ACK）**：第三方收到 POST 後，在 0.1 秒內秒回 HTTP 200 OK (status: received, mode: async)，告知 SignalHub「信號已收到，請勿重試，正在處理」。
+  2. **第二階段（異步結算回報）**：第三方內部完成結算後，在 **10 秒內** 主動向 Payload 中攜帶之 reply_url（如 https://signal.tg25.win/api/v9/signal-hub/callback-ack）發起 HTTP POST，Body 攜帶帶有 actual_points 的結算 JSON。
+  3. SignalHub 接收到該 POST 後，根據 delivery_id 自動將對應記錄更新為 success 並持久化實際點數 actual_points。
 
 ---
 
