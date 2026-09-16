@@ -58,3 +58,4 @@ Thumbs.db
 
 # Temporary task batch files
 .taskflow/_tmp_*.md
+trash/
