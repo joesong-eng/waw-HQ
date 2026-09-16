@@ -522,7 +522,7 @@ if (type === 'collector') {
 
 > `node_id` 從 `iotv9.devices.node_id` 取得（`device_NNN` 格式）。
 > 兌幣機的 QR Code 由 iHub 生成，不在此修改。
-> 錯誤提示是給 Allie（老邱）在燒錄站看的，不是給玩家看的。
+> 錯誤提示是給 硬體供應商盟友 (Allie)在燒錄站看的，不是給玩家看的。
 
 ---
 
@@ -1031,7 +1031,7 @@ debounce 200ms 防抖
 我的理解： Alliance 燒錄頁面的 QR Code 還是 JSON 格式 {"type":"collector","chip_id":"...","mac":"..."}，但 Member 掃碼判斷已改為認 URL 格式 https://win.tg25.win/m/play?node_id=device_001。兩邊對不上。Allie 說完成但代碼沒改。
 
 做法： Allie 修改 burning.blade.php 的 showQrPreview 函數，改為生成 URL 格式，node_id 為 null 時顯示錯誤「請先設定機台編號」。
-### 「請先設定機台編號」 是給盟友老邱看的還是給會員玩家看的？ QRCODE是貼在機台上的喔 除非 是剛燒好 有問題 老邱在辦公室測試
+### 「請先設定機台編號」 是給硬體供應商看的還是給會員玩家看的？ QRCODE是貼在機台上的喔 除非 是剛燒好 有問題 工程師在辦公室測試
 
 
 項目 4（看不懂）：

@@ -1,173 +1,110 @@
 # QR Code 格式統一規範
 
-> **版本**: 1.1  
-> **最後更新**: 2026-05-25  
-> **狀態**: ✅ **已統一實作**  
-> **適用範圍**: iHub (Hubie)、Alliance (Allie)、Member (Mina)
+> **版本**: 2.1.0
+> **最後更新**: 2026-09-14
+> **維護者**: HQ（唯一寫入權）
+> **適用範圍**: iHub (Hubie)、Alliance (Allie)、Member (Mina)、Infra (Ina)
 
 ---
 
 ## ⚠️ 重要聲明
 
-**本文件定義 V9 系統 QR Code 格式規範。**
+**本文件定義 WAW 系統 QR Code 格式規範與安全性標準。**
 
-- ✅ 所有新開發必須遵循本規範
-- ❌ 任何 Agent 不得自行修改 QR Code 格式
-- ❌ 發現不一致時，以本文件為準
-
-**實作狀態**（2026-05-25 更新）：
-- ✅ iHub：已統一為 `?id=` 參數（Commit: `000f41a`）
-- ✅ Member：已支援 `?id=` 參數（Commit: `9a697fc`）
-- ⏳ Alliance：待確認（遊戲機 QR Code）
-
-**與韌體的關係**：
-- ❌ 韌體（Fio/Coli）不處理 QR Code
-- ✅ QR Code 由 iHub（兌幣機）和 Alliance（遊戲機）生成
-- ✅ QR Code 由 Member 前端讀取
+- ✅ 所有產線出廠、平板顯示與前端解析必須嚴格遵循本規範
+- ❌ 任何 Agent 不得自行發明或修改 QR Code 格式
+- ❌ 嚴禁將連續、具規律性的硬體實體 MAC / chip_id 明文印製在可公開接觸的機殼貼紙上（防止枚舉霸佔 DoS 攻擊）
+- ❌ 嚴禁在出廠貼紙上生成 Raw JSON 字串
 
 ---
 
 ## 一、格式規範
 
-### 1.1 兌幣機 QR Code
+### 1.1 兌幣機 QR Code（動態螢幕）
 
 **標準格式**：
 ```
 https://win.tg25.win/kiosk?id={node_id}&token={session_token}
 ```
 
-**範例**：
-```
-https://win.tg25.win/kiosk?id=kiosk_001&token=mFbyvbYqQIhnC8hcw60LCctL7iKCpjIh
-```
-
 **參數**：
-- `id`：Kiosk 的 `node_id`（格式：`kiosk_NNN`）
-- `token`：Session token（90 秒有效期）
+- id：Kiosk 的 node_id（格式：kiosk_NNN）
+- token：動態 Session Token（由 iHub 每 90 秒定期刷新）
 
-**生成方**：iHub  
-**讀取方**：Member
+**生成方**：iHub 平板螢幕
+**讀取方**：Member 手機相機
 
 ---
 
-### 1.2 遊戲機 QR Code
+### 1.2 遊戲機出廠實體貼紙 QR Code（老邱產線燒錄階段）
 
-**標準格式**：
+在工廠批量燒錄通訊卡階段，卡片尚未送達店家安裝，尚未綁定現場機台編號（無 node_id）。為防止客人拍下機殼 QR 後推算前後 MAC 遍歷霸佔機台（DoS 攻擊），出廠標籤一律採用「混淆 Public Token」，嚴禁印製 MAC 或 Raw JSON。
+
+**標準出廠格式**：
+```
+https://win.tg25.win/m/play?t={public_token}
+```
+
+**參數**：
+- t：32 字元不可逆隨機代號（UUID v4 去除連字號或高熵隨機字串，例如 c8f3b610a2d54e19b84a912e73f84c01）
+- 儲存對應：由 Alliance 在建立設備燒錄綁定記錄時生成，並同步存於 public_token <-> chip_id 對應表
+
+**生成方**：Alliance 燒錄工作站（印表機輸出貼紙）
+**讀取方**：Member 手機相機
+
+---
+
+### 1.3 遊戲機現場營運標籤（已指定機台編號後）
+
+若機台已由店長老李於後台完成裝機綁定，或在店內二次印製帶有名稱與編號的標籤：
+
+**標準現場格式**：
 ```
 https://win.tg25.win/m/play?node_id={node_id}
 ```
 
-**範例**：
-```
-https://win.tg25.win/m/play?node_id=device_001
-```
-
 **參數**：
-- `node_id`：遊戲機的 `node_id`（格式：`device_NNN`）
+- node_id：機台在 WAW 系統中的唯一營運編號（由 Owner 後台裝機綁定時生成）
 
-**生成方**：Alliance  
-**讀取方**：Member
-
----
-
-## 二、實作規範
-
-### 2.1 iHub 生成（檔案：`iHub/src/main.js`）
-
-**正確**：
-```javascript
-await generateQR(`https://win.tg25.win/kiosk?id=${KIOSK_ID}&token=${data.token}`);
-```
-
-**錯誤**：
-```javascript
-// ❌ 參數名用 kiosk
-await generateQR(`https://win.tg25.win/kiosk?kiosk=${KIOSK_ID}&token=${data.token}`);
-
-// ❌ 舊格式
-await generateQR(`KIOSK:${KIOSK_ID}:TOKEN:${data.token}`);
-```
+**生成方**：Owner 後台裝機綁定
+**讀取方**：Member 手機相機
 
 ---
 
-### 2.2 Alliance 生成（檔案：`Alliance/resources/views/devices/burning.blade.php`）
+## 二、安全性標準
 
-**正確**：
-```php
-$qrContent = "https://win.tg25.win/m/play?node_id={$device->node_id}";
-```
+### 2.1 防枚舉與防暴力鎖定（Anti-DoS 機制）
 
-**錯誤**：
-```php
-// ❌ 使用 chip_id
-$qrContent = "https://win.tg25.win/m/play?node_id={$device->chip_id}";
-```
+1. **出廠貼紙**：一律使用 public_token（32 字元高熵隨機代號），不暴露 MAC / chip_id
+2. **API 端點防護**：
+   - /api/device/check-session：平板開機時驗證 session 有效性
+   - /api/device/bind：平板配對綁定，需驗證 public_token 或 node_id 合法性
+   - /api/device/by-token/{token}：以 public_token 查詢設備資訊
+3. **IP 限流**：同一 IP 短時間內大量請求不同 token / node_id 時觸發封鎖
 
----
+### 2.2 出廠貼紙內容規範
 
-### 2.3 Member 讀取（檔案：`Member/resources/views/welcome.blade.php`）
-
-**正確**（向下相容）：
-```javascript
-const kioskId = urlObj.searchParams.get('id') || urlObj.searchParams.get('kiosk');
-```
+1. QR Code 內容：https://win.tg25.win/m/play?t={public_token}
+2. 標籤底部可印 MAC / Chip ID 作為「老邱品檢辨識小字」（僅內部識別用，不作為 QR 掃描內容）
+3. 嚴禁在 QR Code 中嵌入 Raw JSON 字串（如 {"type":"collector","chip_id":"...","mac":"..."}）
 
 ---
 
-## 三、部署順序（強制）
+## 三、Member 端解析流程
 
-```
-1. 修改生成方（iHub 或 Alliance）
-   ↓
-2. 部署到生產環境
-   ↓
-3. HQ 驗證
-   ↓
-4. 修改讀取方（Member）
-   ↓
-5. 部署到生產環境
-```
+| 場景 | URL 格式 | 解析入口 | 負責方 |
+|------|----------|----------|--------|
+| 出廠貼紙掃描 | /m/play?t={public_token} | welcome.blade.php → play.blade.php | DeviceController@bind |
+| 現場標籤掃描 | /m/play?node_id={node_id} | welcome.blade.php → play.blade.php | DeviceController@bind |
 
-**嚴禁同時修改生成方和讀取方**
+**流程說明**：
+1. 平板開機 → Member app 掃描機台 QR Code
+2. 系統以 GET /api/device/by-token/{token} 或 node_id 查詢設備
+3. welcome.blade.php 解析 QR → 跳轉 play.blade.php 進入遊戲畫面
+4. DeviceController@bind 完成平板與機台綁定
 
 ---
 
-## 四、驗收標準
-
-### 兌幣機
-- [ ] iHub 生成格式：`?id={node_id}&token={token}`
-- [ ] 手機相機掃描後跳轉正確
-- [ ] 登入後進入兌幣流程
-
-### 遊戲機
-- [ ] Alliance 生成格式：`?node_id={node_id}`
-- [ ] 手機相機掃描後跳轉正確
-- [ ] 登入後進入開分流程
-
----
-
-**制定者**: HQ  
-**最後更新**: 2026-05-24  
-**版本**: 1.0
-
----
-
-## 🔗 文件神經連結
-
-### 強關聯（必讀）
-> 修改 QR Code 格式前，必須先閱讀
-
-- `../NAMING_AUTHORITY.md` - 識別碼命名規則（node_id vs chip_id）
-- `../04_deployment_operations/INFRASTRUCTURE_REFERENCE.md` - 部署位置（iHub 在 yd47）
-
-### 中關聯（建議讀）
-> 了解 QR Code 在業務流程中的使用
-
-- `../05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md` - 兌幣流程
-- `WEBSOCKET_CHANNEL_STANDARD.md` - iHub 監聽 WebSocket
-- `../04_deployment_operations/DEPLOYMENT_GUIDE.md` - 部署步驟
-
-### 排除混淆
-> 容易誤以為相關，但實際無關
-
-- `02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md` - 韌體不處理 QR Code
+**制定者**: HQ
+**最後更新**: 2026-09-14
+**版本**: 2.1.0

@@ -71,33 +71,23 @@
 
 ## 三、 MQTT 主題命名與結構規範
 
-### 3.1 主題層級結構
-```
-{category}/{chip_id}/{function}
-```
-- `category`: `kiosk` (兌幣卡) 或 `device` (通用 ESP32/遊戲機通訊卡)
-- `chip_id`: ESP32 的 MAC address (全小寫，無冒號的 12 碼)
-- `function`: 功能類型 (status / event / cmd / command / data 等)
+> ⚠️ **MQTT 主題規範已獨立至專屬文件**
+>
+> MQTT 主題格式、QoS、Retain、Payload 格式的唯一正本為：
+>
+>     brains/knowledge/02_technical_standards/MQTT_TOPIC_STANDARD.md
+>
+> 任何與 MQTT 主題相關的開發工作，請直接參考該文件，不得在其他地方另立定義。
 
-### 3.2 兌幣卡主題（kiosk_v0 / IOTkiosk_v0）
-* **上行主題 (ESP32 -> 雲端)**：
-  - `kiosk/{chip_id}/status` | QoS 1, Retain | 連線後立即 + 每 60 秒回報。
-  - `kiosk/{chip_id}/event` | QoS 2 | 鈔票暫存 (Escrow)、收鈔確認 (Stacked) 或退鈔 (Rejected)。
-  - `device/{chip_id}/status` | QoS 1, Retain | LWT 遺言上線/下線 ("online" / "offline")。
-* **下行主題 (雲端 -> ESP32)**：
-  - `kiosk/{chip_id}/cmd` | QoS 2 | 控制收鈔行為：`{"action": "enable" | "disable" | "stack" | "reject"}`。
+### 3.1 現行兩套主題體系（摘要，詳規範見 MQTT_TOPIC_STANDARD.md）
 
-### 3.3 通訊卡主題（game_v0 / IOTwawS3）
-* **上行主題 (ESP32 -> 雲端)**：
-  - `device/{chip_id}/status` | QoS 1, Retain | 心跳狀態。
-  - `device/{chip_id}/pulse` | QoS 1 | 物理脈衝事件，Payload：`{"type": "credit_in" | "credit_out", "value": 1}`。
-  - `device/{chip_id}/data/credit_in` | QoS 1, Retain | 累計入金脈衝數，Payload：`{"count": 1234, "lifetime": 5678}`。
-* **下行主題 (雲端 -> ESP32)**：
-  - `device/{chip_id}/command` | QoS 1 | 下發控制指令：
-    - 開分：`{"command": "assign_credit", "transaction_id": "...", "params": {"count": 5}}`
-    - 洗分：`{"command": "settle_credit", "transaction_id": "..."}`
-    - 模擬採集脈衝 (測試用)：`{"command": "simulate_pulse", "transaction_id": "...", "params": {"type": "credit_in", "count": 5}}`
+**WAW-USS v1.0（主標準，新韓體使用）**：
+- 格式：waw/v1/SITEID/signal/CHIPID/ACTION
+- action：event（信號上報）/ status（在線狀態）/ cmd（控制指令）/ ack（指令回執）
 
+**Legacy 相容層（舊體系，不得新增）**：
+- 兑幣卡：kiosk/CHIPID/event、kiosk/CHIPID/status、kiosk/CHIPID/cmd
+- 通訊卡：device/CHIPID/register、device/CHIPID/status、device/CHIPID/pulse、device/CHIPID/command
 ---
 
 ## 四、 核心 API Payload 與 JSON 格式規範

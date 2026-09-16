@@ -15,7 +15,7 @@
 | 入口名稱 | 使用對象 | 網站域名 | 對應系統 | 負責 Agent | 定位 |
 |---|---|---|---|---|---|
 | 商戶後台 | 店家老闆、寄台老闆、機台主 | `https://iot.tg25.win` | `wawOwner` / `waw-business` | Sophie | 營收、交班、設備、部署、分潤、欠費、報表 |
-| 聯盟後台 | 老邱們、代理商、供應商、經銷夥伴 | `https://ali.tg25.win` | `Alliance` | Allie | 通路管理、下線管理、訂單、綁機、代理分潤 |
+| 聯盟後台 | 硬體供應商們、代理商、供應商、經銷夥伴 | `https://ali.tg25.win` | `Alliance` | Allie | 通路管理、下線管理、訂單、綁機、代理分潤 |
 | 會員入口 | 玩家、會員 | `https://win.tg25.win` | `Member` / `waw-wallet` | Mina | 掃碼、儲值、開分、洗分、錢包餘額 |
 | iHub / 紙鈔機終端 | 現場 Android 平板、兌幣機 WebView | `https://ihub.tg25.win` | `iHub` / `waw-exchange-console` | Hubie | 收鈔、出幣、現場狀態、設備操作畫面 |
 
@@ -45,7 +45,7 @@
 
 ## 四、角色分工口訣
 
-**老闆看生意，老邱管通路，會員玩遊戲，iHub 做現場兌幣，Infra 撐住資料庫、MQTT 與 API，韌體入口負責 OTA 檔案。**
+**老闆看生意，硬體供應商管通路，會員玩遊戲，iHub 做現場兌幣，Infra 撐住資料庫、MQTT 與 API，韌體入口負責 OTA 檔案。**
 
 ---
 

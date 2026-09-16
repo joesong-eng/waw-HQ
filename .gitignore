@@ -52,3 +52,9 @@ Thumbs.db
 *.bak
 *.backup
 .cache/
+
+# Secret handover — never commit credentials
+.taskflow/hq/inbox/secret_handover/
+
+# Temporary task batch files
+.taskflow/_tmp_*.md

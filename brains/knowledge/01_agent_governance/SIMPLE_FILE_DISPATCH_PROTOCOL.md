@@ -105,3 +105,110 @@ bash ../../scripts/agent_report_to_hq_v2.sh <Agent名稱> <報告檔案路徑.md
 **回報時間**：YYYY-MM-DD HH:MM
 ```
 
+
+
+---
+
+## 🔄 Agent 向 HQ 回報問題或提問
+
+> **新增日期**: 2026-09-08  
+> **適用場景**: 技術問題諮詢、跨 Agent 協調需求、架構決策請求
+
+### 核心原則
+
+**每個 Agent 只能寫入自己的 outbox，不能寫入其他 Agent 的 inbox（包括 HQ）**
+
+### 正確流程
+
+#### 1. Agent 在自己的 outbox 提交問題
+
+**目標目錄**：`.taskflow/<agent>/outbox/`
+
+**檔案命名規範**：
+```
+QUESTION_<YYYYMMDD>_<AGENT>_TO_HQ_<BRIEF_TOPIC>.md
+```
+
+**範例**：
+```
+.taskflow/signalhub/outbox/QUESTION_20260908_SIDNEY_TO_HQ_SIGNAL_TYPE_AGGREGATION.md
+.taskflow/owner/outbox/QUESTION_20260908_SOPHIE_TO_HQ_DATABASE_MIGRATION.md
+```
+
+#### 2. HQ 讀取 Agent 的 outbox
+
+HQ 定期檢查各 Agent 的 outbox，發現 QUESTION 類型文件後：
+- 協調相關 Agent
+- 查閱技術標準與知識庫
+- 做出決策
+
+#### 3. HQ 回覆方式
+
+**選項 A：在 HQ 自己的 outbox 發布正式回覆**
+```
+.taskflow/hq/outbox/ANSWER_<YYYYMMDD>_HQ_<BRIEF_TOPIC>.md
+```
+
+**選項 B：直接派工到 Agent 的 inbox**
+```
+./dev_tools/waw_ops.sh task <agent> <task_id> "<描述>" [priority]
+→ 產生：.taskflow/<agent>/inbox/TASK_xxx.md
+```
+
+#### 4. 知識庫歸檔
+
+重要的技術決策同步歸檔至：
+```
+brains/knowledge/02_technical_standards/
+brains/knowledge/03_system_architecture/
+brains/knowledge/05_business_flows/
+```
+
+---
+
+### 流程圖
+
+```
+┌────────┐
+│ Sidney │ 發現技術問題
+└───┬────┘
+    │
+    ├──→ 寫入自己的 outbox：
+    │    .taskflow/signalhub/outbox/QUESTION_xxx.md
+    │
+┌───▼────┐
+│   HQ   │ 讀取 Sidney 的 outbox，協調與決策
+└───┬────┘
+    │
+    ├──→ 選項 A：發布回覆到 HQ outbox
+    │    .taskflow/hq/outbox/ANSWER_xxx.md
+    │
+    ├──→ 選項 B：直接派工到 Sidney inbox
+    │    .taskflow/signalhub/inbox/TASK_xxx.md
+    │
+    └──→ 知識庫歸檔：
+         brains/knowledge/02_technical_standards/
+```
+
+---
+
+### 範例場景（2026-09-08 UI2 信號語義問題）
+
+1. ✅ Sidney 發現問題，寫入自己的 outbox：
+   `.taskflow/signalhub/outbox/QUESTION_20260908_SIDNEY_TO_HQ_SIGNAL_TYPE_AGGREGATION.md`
+
+2. ✅ HQ 讀取後協調 Coli 確認韌體，發布正式回覆：
+   `.taskflow/hq/outbox/ANSWER_20260908_HQ_SIGNAL_TYPE_AGGREGATION_BEHAVIOR.md`
+
+3. ✅ 歸檔至知識庫：
+   `brains/knowledge/02_technical_standards/WAW_SIGNAL_SEMANTIC_SPECIFICATION.md`
+
+4. ✅ 派工給 Sidney 更新文檔：
+   `.taskflow/signalhub/inbox/TASK_20260908_SIDNEY_UPDATE_SIGNAL_SEMANTIC_DOCS.md`
+
+---
+
+## 📊 統計與監控
+
+`.taskflow/task_flow.log` 記錄所有派工、回報與技術諮詢的時間戳與狀態。
+

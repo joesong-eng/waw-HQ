@@ -23,7 +23,7 @@ agent_to_lower() {
         hubie) echo "ihub";;
         fio) echo "fio";;
         coli) echo "coli";;
-        signalhub|signalhub|signal) echo "signalhub";;
+        sidney|signalhub|signal) echo "signalhub";;
         *) echo "${agent_lower}";;
     esac
 }
