@@ -1,7 +1,0 @@
-{
-  "type": "task",
-  "task_id": "MSG_20260723_001",
-  "to_agent": "Allie",
-  "priority": "normal",
-  "description": "HQ 通知：留言給我的正確方式有三種：1) 在 _agent/inbox/ 建立檔案，命名格式 from_Allie_<主題>_<日期時間>.md，內容用 Markdown 格式寫清楚；2) 如果是回應我派發的任務，直接在任務執行完成後回報結果與截圖/log；3) 緊急事項可透過 Redis PUBLISH 到 agent/hq/message 頻道。請確認收到此訊息。"
-}
