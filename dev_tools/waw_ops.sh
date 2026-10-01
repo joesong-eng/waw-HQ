@@ -60,6 +60,7 @@ print_help() {
     echo "  log                   檢視派工系統最近日誌"
     echo "  task <agent> <task_id> \"<desc>\" [prio]  派發標準任務到指定 Agent 的 Inbox"
     echo "  deploy <agent>        執行指定 Agent 的遠端 VPS 標準部署"
+    echo "  close <agent|hq> <key> 將指定 Agent 或 HQ 符合關鍵字/ID的任務與回報結案歸檔"
     echo "  remote <agent> \"<cmd>\"在指定 Agent 的遠端 VPS 執行指令"
     echo ""
 }
@@ -103,16 +104,12 @@ cmd_report() {
 }
 
 cmd_task() {
-    local target="$1"
-    local task_id="$2"
-    local desc="$3"
-    local prio="${4:-normal}"
-    
-    if [ -z "${target}" ] || [ -z "${task_id}" ] || [ -z "${desc}" ]; then
-        echo "❌ 參數不足！用法: ./dev_tools/waw_ops.sh task <agent> <task_id> \"<描述>\" [priority]"
+    if [ $# -lt 3 ]; then
+        echo "❌ 參數不足！用法: ./dev_tools/waw_ops.sh task <agent> <task_id> "<描述>" [priority]"
+        echo "          或: ./dev_tools/waw_ops.sh task <agent> <task_id> --file <檔案路徑> [priority]"
         exit 1
     fi
-    "${DEV_TOOLS_DIR}/hq_task_flow.sh" task "${target}" "${task_id}" "${desc}" "${prio}"
+    "${DEV_TOOLS_DIR}/hq_task_flow.sh" task "$@"
 }
 
 cmd_deploy() {
@@ -179,12 +176,61 @@ cmd_remote() {
     ssh -o RequestTTY=no -p "${port}" "ubuntu@${host}" "cd ${path} && ${command}"
 }
 
+cmd_close() {
+    local target="$1"
+    local pattern="$2"
+    if [ -z "${target}" ] || [ -z "${pattern}" ]; then
+        echo "❌ 參數不足！"
+        echo "用法: ./dev_tools/waw_ops.sh close <agent|hq> <檔名關鍵字或ID>"
+        echo "範例: ./dev_tools/waw_ops.sh close owner 20260920"
+        echo "      ./dev_tools/waw_ops.sh close hq 20260930_OWNER_MODULE_AUDIT_REPORT"
+        exit 1
+    fi
+
+    local mod
+    if [ "${target}" = "hq" ]; then
+        mod="hq"
+    else
+        mod=$(agent_to_module "${target}")
+    fi
+
+    local year_month=$(date +%Y%m)
+    local archive_dir="${TASKFLOW_DIR}/archive/${mod}/${year_month}"
+    mkdir -p "${archive_dir}"
+
+    local matched_files=()
+    for dir in "${TASKFLOW_DIR}/${mod}/inbox" "${TASKFLOW_DIR}/${mod}/outbox"; do
+        if [ -d "${dir}" ]; then
+            while IFS= read -r file; do
+                if [ -n "${file}" ] && [ -f "${file}" ]; then
+                    matched_files+=("${file}")
+                fi
+            done < <(find "${dir}" -type f -name "*${pattern}*.md" 2>/dev/null)
+        fi
+    done
+
+    if [ ${#matched_files[@]} -eq 0 ]; then
+        echo "⚠️ 在 ${mod} 的 inbox/outbox 中找不到包含 '${pattern}' 的檔案。"
+        exit 1
+    fi
+
+    echo "📦 找到 ${#matched_files[@]} 個符合檔案，正在結案歸檔至: ${archive_dir}/"
+    for src in "${matched_files[@]}"; do
+        local fname=$(basename "${src}")
+        mv "${src}" "${archive_dir}/${fname}"
+        echo "  ✅ 歸檔: ${fname}"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [CLOSED] ${mod} -> ${archive_dir}/${fname}" >> "${LOG_FILE}"
+    done
+    echo "🎉 結案歸檔完成！"
+}
+
 case "$1" in
     status) cmd_status ;;
     report) cmd_report "$2" ;;
-    task) cmd_task "$2" "$3" "$4" "$5" ;;
+    task) shift; cmd_task "$@" ;;
     deploy) cmd_deploy "$2" ;;
     remote) cmd_remote "$2" "$3" ;;
+    close) cmd_close "$2" "$3" ;;
     log) tail -n 30 "${LOG_FILE}" ;;
     *) print_help ;;
 esac

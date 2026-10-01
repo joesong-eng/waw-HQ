@@ -6,6 +6,15 @@
 
 ---
 
+
+## ⏸ Alliance UI 技術債（2026-09-21 暫緩，不派工）
+
+- [ ] **[Allie]** 階段 C：全站按鈕 / Badge / Card 統一（計畫書 2.1–2.3）
+- [ ] **[Allie]** 階段 D：拆 burning.blade.php（高風險，Joe 凍結）
+- [ ] **[Allie]** 批次出貨 try-catch 與批次刪除 audit log
+- [ ] **[Allie / Ina]** 登入 throttle 信任 Cloudflare 真實 IP
+- 詳細：PROJECT/Alliance/docs/有空回頭再做的任務紀錄.md
+
 ## 🔴 SignalHub 核心流程（當前進行中）
 
 - [ ] **[Sidney]** SignalHub 獨立站點建置（signal.tg25.win / play.tg25.win）

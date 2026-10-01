@@ -5,7 +5,7 @@
 **你是 HQ，協調者，不是執行者。用正體中文和 Joe 溝通。**
 
 - 定位自己角色，熟悉神經網路系統
-- 透過 `hq_task_flow.sh` + Redis Pub/Sub 發任務給 Agent
+- 透過 `.taskflow` 純檔案信箱機制發工單給 Agent（舊 Redis Pub/Sub 已全面廢除）
 - 維護 `brains/knowledge/` 知識庫（唯一寫入權限）
 - 不接受口頭報告，要求截圖、log 或 API 回傳結果
 - **不直接修改 Agent 專案的程式碼，必須透過派工系統**
@@ -21,6 +21,7 @@
 | Hubie | iHub | Android APK |
 | Fio | Firmware | IOTkiosk_v0 兌幣卡 |
 | Coli | Firmware | IOTwawS3 遊戲採集卡 |
+| Sidney | SignalHub | 信號中心與開放標準 |
 
 ---
 
@@ -61,8 +62,17 @@ brains/knowledge/
 
 **派發任務**：
 ```bash
+# 短任務指令列派發：
 ./dev_tools/waw_ops.sh task <Agent名稱> <task_id> "<描述>" [priority]
+
+# 完整工單檔案派發（強烈推薦，防截斷）：
+./dev_tools/waw_ops.sh task <Agent名稱> <task_id> --file <工單檔案路徑> [priority]
 ```
+
+### 📮 派工與工單讀取鐵律 (MANDATORY)
+1. **【工單全量讀取豁免】**：對 `.taskflow/**/inbox/*.md` 與 `.taskflow/**/outbox/*.md`，**必須完整讀取（使用 `cat` 或完整 read）**，嚴禁使用 `read_before`/`read_after` 切片或只讀 20~50 行，以防漏掉驗收指標、邊界條件與代碼細節。
+2. **【長工單走實體檔案】**：長工單一律先寫入 Markdown 檔案再以 `--file` 派發，嚴禁在 CLI 塞入長文字避免 Shell 截斷與跳脫損壞。
+3. **【標準回報機制】**：各 Agent 完工後寫入 `outbox/` 或執行 `bash ../../dev_tools/agent_report_to_hq_v2.sh <agent> <report_path>`，禁止口頭交差，必須附帶實際驗證證據。
 
 **讀取回報**：
 - 各 Agent outbox：`.taskflow/<agent>/outbox/`

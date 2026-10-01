@@ -212,3 +212,85 @@ brains/knowledge/05_business_flows/
 
 `.taskflow/task_flow.log` 記錄所有派工、回報與技術諮詢的時間戳與狀態。
 
+
+---
+
+## 4. Shannie (Executive Assistant) 協作標準規範
+
+### 4.1 定位與原則
+- **角色**：Executive Assistant / Strategic Advisor to JOE，不承接具體程式碼實作。
+- **通道設計**：採「非同步信箱優先（Inbox/Outbox Pattern）」原則。MCP 為高速通道，非唯一通道；即便遠端 Tunnel 斷線，亦不影響整體協作進程。
+
+### 4.2 標準任務訊息格式 (Frontmatter 規範)
+Shannie 發至 `.taskflow/shannie/outbox/` 的檔案命名為 `YYYYMMDD_HHMMSS_<TOPIC>.md`，開頭必須包含標準 Frontmatter：
+
+```markdown
+---
+from: Shannie
+to: HQ
+type: task | decision | feedback
+date: YYYY-MM-DD
+priority: high | normal | low
+status: pending
+---
+
+# 任務/決策標題
+
+## 背景
+...
+
+## 需求
+...
+
+## 建議處理方式
+...
+
+## 預期輸出
+...
+```
+
+### 4.3 HQ 處理與流轉協議
+1. **讀取**：HQ 定期或依通知檢查 `.taskflow/shannie/outbox/`。
+2. **分派**：若屬技術實作需求，由 HQ 轉化為工程工單派發至 Sophie / Mina / Ina 等對應 Agent。
+3. **歸檔**：處理完成之任務標記為 `status: completed`，並封存至 `.taskflow/shannie/archive/`。
+
+---
+
+## 🔒 結案與歸檔協議 (Case Closing & Archival SOP)
+
+> **生效日期**: 2026-09-30  
+> **權威標準**: 所有工單/報告必須有明確終點，禁止無限制滯留於 inbox/outbox。
+
+### 1. 工單兩大類型
+
+| 類型 | 代號 | 發起者 | 受文者 | 內容 | 終點處理 |
+|:---|:---:|:---:|:---:|:---|:---|
+| **任務工單** | `TASK` | HQ | Agent | 具體任務要求、驗收標準 | Agent 提交回報帶遠端證據 ➔ HQ 驗收通過 ➔ **HQ 結案歸檔** |
+| **主動報告 / 提案** | `REPORT` / `PROPOSAL` | Agent | HQ | 架構盤點、問題諮詢、跨 Agent 協調請求 | HQ 審閱確認 ➔ 填寫決策結論 ➔ **HQ 結案歸檔**；若需後續行動，由 HQ 拆開新 `TASK` |
+
+### 2. 鋼鐵原則（零滯留）
+
+1. **唯一結案權**：只有 **HQ**（在審核或 Joe 批准後）有權將工單結案歸檔。**Agent 嚴禁自行歸檔**。
+2. **星狀派發，禁止私相授受**：所有任務流向皆為 `HQ ↔ Agent`。Agent 需要其他 Agent 配合時，向 HQ 提交提案/問題，由 HQ 另起獨立任務派發。
+3. **當日結案原則**：
+   - 任務回報經 HQ 驗證合格者，HQ 應立即執行結案歸檔。
+   - 主動報告經 HQ 審閱並決定分流後，原報告立即結案歸檔，不得在原報告內疊加後續開發進度。
+4. **歸檔指令**：全面使用 `./dev_tools/waw_ops.sh close <agent|hq> <filename_or_keyword>` 執行標準化歸檔。
+
+
+### 3. ⚠️ Agent 必知：歸檔 ≠ 遺失（認知更新 2026-09-30）
+
+> **背景**：曾發生 Agent 誤判「回報被移至 archive = 系統故障/未送達」，並手動重複補送，造成混亂。
+
+| 狀況 | 正確解讀 | 錯誤行為 |
+|:---|:---|:---|
+| 自己的 outbox 文件消失 | HQ 已驗收並執行結案歸檔，任務**成功完成** | ❌ 以為遺失，手動複製到 hq/inbox |
+| `.taskflow/archive/` 出現工單 | HQ 主動封存，流程正常 | ❌ 誤判為錯誤，企圖回滾 |
+| hq/inbox 已無該工單 | HQ 已處理完畢 | ❌ 重複補送同份報告 |
+
+**Agent 行動準則**：
+1. 回報送出後，等待 HQ 回覆新 TASK 或確認訊息。
+2. 若不確定任務是否送達，查 `.taskflow/archive/` 確認，而非重複補送。
+3. **嚴禁手動複製文件到其他 Agent 或 hq 的 inbox**，此舉繞過派工協議。
+4. 有疑慮：向 HQ 提交一份 `REPORT` 詢問，等待 HQ 回覆。
+

@@ -47,3 +47,34 @@ Agent 被啟動於對應專案目錄（例如 `PROJECT/SignalHub`、`PROJECT/Own
 1. 依標準模板撰寫 Markdown 格式的回報檔案至專案目錄或直接提交。
 2. 執行 `bash ../../dev_tools/agent_report_to_hq_v2.sh <Agent名稱> <報告檔案>` 或放入 `../../.taskflow/<agent>/outbox/`。
 3. 任務結束，Agent session 自行終止。
+
+
+---
+
+## ⚠️ Agent 必知：歸檔 ≠ 遺失（認知注入 2026-09-30）
+
+> 源起：Sophie 誤判 outbox 文件被 HQ 歸檔為「系統故障/未送達」，手動重複補送，造成混亂。
+
+### HQ 結案歸檔流程說明
+
+任務完成後，HQ 驗收通過會主動執行：
+```
+./dev_tools/waw_ops.sh close <agent> <task_id>
+```
+這會將 inbox/outbox 成對工單移入 `.taskflow/archive/`。
+
+**對 Agent 的意義**：
+
+| Agent 觀察到的現象 | 正確解讀 | 錯誤反應 |
+|:---|:---|:---|
+| outbox 文件消失 | HQ 已驗收，任務成功完成 | 以為遺失，手動補送 |
+| `.taskflow/archive/` 出現工單 | HQ 主動封存，流程正常 | 誤判為系統故障 |
+| 未收到新 TASK | 在等待新派工或任務已結束 | 重複詢問或重複補送 |
+
+### Agent 行動準則
+
+1. 回報送出後，**等待 HQ 的新 TASK 或明確回覆**，不需追蹤文件位置。
+2. 不確定是否送達：查 `.taskflow/archive/` 確認，而非重複補送。
+3. **嚴禁手動複製文件到任何 inbox**（包括 hq/inbox），此舉繞過派工協議。
+4. 有疑慮：提交一份 REPORT 給 HQ 詢問，等待回覆。
+

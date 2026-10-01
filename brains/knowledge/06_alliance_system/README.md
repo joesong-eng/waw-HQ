@@ -18,6 +18,7 @@
 | `QUICK_DIAGNOSIS_SOP.md` | 快速診斷與修復標準作業程序 | ✅ |
 | `MAINTENANCE_BEST_PRACTICES.md` | 系統維護最佳實踐 | ✅ |
 | `TROUBLESHOOTING_GUIDE.md` | 故障排除指南 | ✅ |
+| `../../PROJECT/Alliance/docs/有空回頭再做的任務紀錄.md` | Alliance UI 階段 C/D 技術債（暫緩、未派工） | ⏸ 暫緩 |
 
 ---
 
