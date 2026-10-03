@@ -59,3 +59,15 @@ Thumbs.db
 # Temporary task batch files
 .taskflow/_tmp_*.md
 trash/
+
+# === Added by cleanup ===
+# Legacy dispatch system (deprecated)
+.taskbox/
+# Legacy agent dispatch (deprecated)
+_agent/
+# Kilo/Kiro worktrees
+.kilo/
+# Dependencies
+vendor/
+node_modules/
+target/
