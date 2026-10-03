@@ -112,12 +112,14 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
   但 Model 不存在；無 `SubscriptionController`；routes 無訂閱路由。
 - **依據**：`20260915_103000_PROPOSAL_SIDNEY_TO_HQ_SIGNALHUB_SUBSCRIPTION_DESIGN.md`
 - **步驟**：
-  1. [ ] HQ 裁定訂閱 Schema 與方案定價（沿用 `config/subscription.php`）
-  2. [ ] 派單 Sidney：建 `OwnerSubscription` Model + Migration
-  3. [ ] 派單 Sidney：建 `SubscriptionController` + 路由
-  4. [ ] 派單 Sophie：Owner 後台訂閱管理頁對接
-- **負責**：HQ（裁定）→ Sidney → Sophie
-- **驗收**：`owner_subscriptions` 表可讀寫；訂閱狀態 API 回 200。
+  1. [x] HQ 裁定架構 → **ADR-001**：複用 Owner 基礎設施（共用 iotv9 DB + owner_subscriptions 表），不重造帳務
+  2. [x] 派單 Sidney：`TASK_20261003_SIDNEY_IMPLEMENT_SUBSCRIPTION`（Model + status API + Middleware（預設停用）+ 橫幅）
+  3. [x] 派單 Sophie：`TASK_20261003_SOPHIE_VERIFY_SIGNALHUB_SUBSCRIPTION_SCOPE`（驗證 users 表共用前提）
+  4. [ ] Sidney 完工回報
+  5. [ ] Sophie 驗證回報
+- **負責**：HQ（已裁定）→ Sidney / Sophie（執行中）
+- **決策文件**：`brains/knowledge/03_system_architecture/ADR-001_SIGNALHUB_SUBSCRIPTION.md`
+- **驗收**：`OwnerSubscription` Model 可載入；訂閱狀態 API 回 200；攔截預設停用。
 
 ### 🔴 P1-2｜SignalHub 版控殘留檔
 
