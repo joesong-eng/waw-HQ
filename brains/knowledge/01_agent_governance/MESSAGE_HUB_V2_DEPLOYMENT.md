@@ -1,3 +1,8 @@
+> ⛔ **【已廢棄】本文件為歷史存檔。描述的機制（Redis Pub/Sub、Message Hub、hq_gateway.py）已全面廢除。**
+> **現行唯一派工體系為 `.taskflow` 純檔案信箱**，參閱 `brains/knowledge/01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md`。
+
+---
+
 # Message Hub 部署報告（歷史文件）
 
 > ⛔ **注意**：「HQ 發任務」的使用方式區段已過時。現行唯一正確指令請見 `MESSAGE_HUB_PROTOCOL.md`。

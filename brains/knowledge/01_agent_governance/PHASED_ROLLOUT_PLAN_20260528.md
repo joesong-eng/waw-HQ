@@ -1,3 +1,8 @@
+> ⛔ **【已廢棄】本文件為歷史存檔。描述的機制（Redis Pub/Sub、Message Hub、hq_gateway.py）已全面廢除。**
+> **現行唯一派工體系為 `.taskflow` 純檔案信箱**，參閱 `brains/knowledge/01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md`。
+
+---
+
 # sysWawIot 全系統矛盾修復分階段割接計劃 (PHASED_ROLLOUT_PLAN_20260528)
 > **設計者**: hHQ (HHQM)  
 > **日期**: 2026-05-28  

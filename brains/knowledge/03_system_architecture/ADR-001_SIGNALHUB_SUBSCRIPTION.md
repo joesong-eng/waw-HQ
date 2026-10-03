@@ -3,7 +3,10 @@
 > **文件類型**：Architecture Decision Record
 > **決策者**：HQ
 > **建立日期**：2026-10-03
-> **狀態**：Accepted（待實作）
+> **狀態**：Superseded（部分被 ADR-003 取代）
+> **⚠️ 後續**：2026-10-04 Joe 裁定 ADR-003，將訂閱表統一為 `subscriptions`，廢除 `owner_subscriptions`。
+> 本 ADR 的「複用 Owner 訂閱基礎設施」方向仍成立，但「以 `owner_subscriptions` 為 SSOT」的決策一已被取代。
+> **現行權威**：`ADR-003_SUBSCRIPTION_TABLE_UNIFICATION.md`
 > **關聯提案**：`20260915_103000_PROPOSAL_SIDNEY_TO_HQ_SIGNALHUB_SUBSCRIPTION_DESIGN.md`
 > **關聯 SPEC**：`WAW_CLEANUP_AND_TASKS_SPEC_20261003.md` P1-1
 
