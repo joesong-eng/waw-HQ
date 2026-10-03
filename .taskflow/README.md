@@ -38,12 +38,12 @@
 
 ```bash
 cd /Users/ilawusong/Documents/WaW
-./scripts/hq_task_flow.sh task <Agent名稱> <task_id> "<描述>" [priority]
+./dev_tools/waw_ops.sh task <Agent名稱> <task_id> "<描述>" [priority]
 ```
 
 **範例**：
 ```bash
-./scripts/hq_task_flow.sh task Sophie FIX_BUG_001 "修復登入問題" high
+./dev_tools/waw_ops.sh task Sophie FIX_BUG_001 "修復登入問題" high
 ```
 
 任務會被寫入到：`.taskflow/owner/inbox/YYYYMMDD_HHMMSS_FIX_BUG_001.md`
@@ -53,7 +53,7 @@ cd /Users/ilawusong/Documents/WaW
 ### Agent 回報任務
 
 ```bash
-./scripts/agent_report_to_hq_v2.sh <Agent名稱> <回報檔案.md>
+./dev_tools/agent_report_to_hq_v2.sh <Agent名稱> <回報檔案.md>
 ```
 
 **範例**：
@@ -73,7 +73,7 @@ cat > /tmp/report.md << 'EOF'
 EOF
 
 # 2. 使用腳本提交回報
-./scripts/agent_report_to_hq_v2.sh Sophie /tmp/report.md
+./dev_tools/agent_report_to_hq_v2.sh Sophie /tmp/report.md
 ```
 
 回報會被複製到：`.taskflow/owner/outbox/YYYYMMDD_HHMMSS_Sophie.md`
