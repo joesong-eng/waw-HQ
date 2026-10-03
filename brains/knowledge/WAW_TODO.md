@@ -86,7 +86,9 @@
 
 ---
 
-## 🔵 基礎設施：多管道派工架構（Hermes + VPS Redis）
+## ⛔ ~~基礎設施：多管道派工架構（Hermes + VPS Redis）~~【已廢棄】
+
+> **本段落整段廢棄（2026-10-03）**：Hermes + VPS Redis 派工架構**不採用**。現行唯一派工體系為 `.taskflow` 純檔案信箱。以下待辦僅為歷史記錄，不再執行。
 
 > **設計文件**：`brains/knowledge/03_system_architecture_designs/MULTI_CHANNEL_DISPATCH_ARCHITECTURE.md`  
 > **目標**：讓 Joe 人在外面時，可以透過 Telegram / Hermes 發任務給 Agent，全程閉環不需要回桌面

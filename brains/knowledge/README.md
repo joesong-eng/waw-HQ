@@ -30,6 +30,12 @@ brains/knowledge/
 
 ---
 
+## 📌 行動規格書 (Action Specs)
+
+- `WAW_CLEANUP_AND_TASKS_SPEC_20261003.md` — 舊派工系統清除與待辦收斂 SPEC（Phase 1-2 已完成，Phase 3 進行中）
+
+---
+
 ## 🆕 最新更新 (2026-08-19)
 
 ### 系統架構文檔
