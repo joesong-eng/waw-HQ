@@ -136,11 +136,16 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
 - **現況**：`PROJECT/Member/app/Models/MachineSession.php`（舊命名）＋
   `CallbackController.php:59/138` 以 `machine_id` 比對。
 - **說明**：Owner/Infra 已全面改 Device 語意，Member 未同步。
+- **架構事實**：Member 同時存在 `DeviceSession`（現行 SSOT，20+ 處使用）與
+  `MachineSession`（殘留，僅 CallbackController 2 處）。
 - **步驟**：
-  1. [ ] HQ 確認 `machine_sessions` 表是否需更名/保留
-  2. [ ] 派單 Mina：對齊 Device SSOT（Model 命名或加註）
-- **負責**：HQ（裁定）→ Mina
-- **驗收**：Member 內 `Machine` 語意與 Owner/Infra 一致。
+  1. [x] HQ 裁定架構 → **ADR-002**：廢除 `MachineSession`，統一 `DeviceSession`
+  2. [x] 派單 Mina：`TASK_20261003_MINA_ALIGN_DEVICE_SESSION_SSOT`（改 CallbackController 2 處 + 刪 Model）
+  3. [ ] Mina 完工回報
+  4. [ ] Ina 評估 `machine_sessions` 表 drop 時機（P3，後續）
+- **負責**：HQ（已裁定）→ Mina（執行中）
+- **決策文件**：`brains/knowledge/03_system_architecture/ADR-002_MEMBER_DEVICE_SESSION_SSOT.md`
+- **驗收**：`grep MachineSession app/` = 0 hits；退款路徑 200。
 
 ### 🟡 P3-1｜Owner README 過時引用
 
