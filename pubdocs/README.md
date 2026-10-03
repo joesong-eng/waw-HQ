@@ -55,8 +55,8 @@ ls -l
 ## 🔗 相關目錄
 
 - **brains/knowledge/** - HQ 知識庫（更詳細的文檔）
-- **_agent/** - 各 Agent 的工作目錄
-- **scripts/** - HQ 腳本工具
+- **.taskflow/** - 各 Agent 的工作目錄
+- **dev_tools/** - HQ 派工與部署工具
 
 ---
 

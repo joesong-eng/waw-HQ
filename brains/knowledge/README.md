@@ -1,6 +1,6 @@
 # HQ 知識庫
 
-> **只有 HQ 可寫入。Agent 如需更新，透過 HQ Message Hub 向 HQ 提交，由 HQ 審核後寫入。**
+> **只有 HQ 可寫入。Agent 如需更新，透過 `.taskflow` 向 HQ 提交，由 HQ 審核後寫入。**
 
 ---
 
@@ -9,7 +9,7 @@
 ```
 brains/knowledge/
 ├── 01_agent_governance/     # Agent 協作規範（執行、職責、任務路由）
-├── 01_agent_governance/     # HQ Message Hub 系統文件
+├── 01_agent_governance/     # Agent 治理與派工協定
 ├── 02_technical_standards/  # 技術標準（MQTT、WebSocket、硬體脈衝）
 ├── 03_system_architecture/  # 系統架構（文件已移至業務域目錄）
 ├── 04_deployment_operations/ # 部署與基礎設施

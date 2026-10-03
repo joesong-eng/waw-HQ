@@ -234,7 +234,7 @@ rm brains/knowledge/test_orphan.md
 git commit --no-verify -m "emergency commit"
 
 # 但必須：
-# 1. 在 HQ Message Hub 說明原因
+# 1. 在 `.taskflow` 回報 HQ 說明原因
 # 2. 事後補註冊
 # 3. 記錄到 brains/history/
 ```

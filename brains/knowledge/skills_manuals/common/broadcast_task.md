@@ -1,3 +1,7 @@
+> ⛔ **【已廢棄】本技能描述的舊派工/自動化機制（Redis、Message Hub、`hq_gateway.py`、`core/`、`.taskbox`、`_agent/`）已全面廢除。現行唯一派工體系為 `.taskflow`**（見 `SIMPLE_FILE_DISPATCH_PROTOCOL.md`）。本文件僅供歷史參考。
+
+---
+
 # 跨 Agent 任務廣播技能
 
 ## 使用時機

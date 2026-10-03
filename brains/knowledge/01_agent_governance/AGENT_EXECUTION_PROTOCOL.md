@@ -136,7 +136,7 @@ forbidden_patterns:
 
 **判斷方法**:
 - 不確定 → 問 HQ
-- 明確不在範圍 → 透過 HQ Message Hub 通知對應 Agent
+- 明確不在範圍 → 透過 `.taskflow` 回報 HQ，由 HQ 通知對應 Agent
 - 絕對不要自己決定跨界執行
 
 **職責對照**: 參考 `TASK_ROUTING_RULES.md`

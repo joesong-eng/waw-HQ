@@ -25,7 +25,7 @@
 1. **在自己的 workspace 運行**
 2. **管理自己的記憶和 context**
 3. **自己執行部署**
-4. **只通過 HQ Message Hub 通訊**
+4. **只通過 `.taskflow` 與 HQ 通訊**
 5. **不跨專案修改代碼**
 
 ---
@@ -35,7 +35,7 @@
 ### ✅ 正確的架構
 
 ```
-用戶 → HQ → 調用 HQ Message Hub
+用戶 → HQ → 透過 `.taskflow` 派工
               ↓
             派發任務
               ↓
@@ -45,7 +45,7 @@
               ↓
             Allie 自己部署
               ↓
-            回報到 HQ Message Hub
+            回報到 `.taskflow` 派工
               ↓
             HQ 接收回報
               ↓
@@ -135,7 +135,7 @@ Agent 繼續開發
 ```
 Mina 需要 Infra 的 DB schema
   ↓
-Mina 透過 HQ Message Hub 問 @Ina
+Mina 透過 `.taskflow` 派工 問 @Ina
   ↓
 Ina 在自己的 workspace 確認並回報
 ```
@@ -145,7 +145,7 @@ Ina 在自己的 workspace 確認並回報
 ```
 Sophie 需要 Infra 新增訂閱攔截路由
   ↓
-Sophie 透過 HQ Message Hub 向 @Ina 提交 RFI
+Sophie 透過 `.taskflow` 派工 向 @Ina 提交 RFI
   ↓
 Ina 實作、測試並部署
   ↓

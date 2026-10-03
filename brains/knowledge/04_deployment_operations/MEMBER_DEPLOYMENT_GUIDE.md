@@ -225,8 +225,8 @@ sudo systemctl restart reverb           # 重啟服務
 
 ## 相關文件
 
-- **部署 SOP**: `_agent/workflows/deploy.md`
-- **WebSocket 設定**: 見 deploy.md 中的 WebSocket 章節
+- **部署 SOP**: `dev_tools/waw_ops.sh deploy member`
+- **WebSocket 設定**: 見本文件 WebSocket 章節
 - **Infra API 文件**: `docs/._apis.md`
 
 ---

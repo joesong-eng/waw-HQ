@@ -224,7 +224,7 @@ grep -r "403.*Internal-Key\|Internal-Key.*403" \
 ```
 
 ## 通知記錄
-- [x] 已透過 HQ Message Hub 通知所有 Agent
+- [x] 已透過 `.taskflow` 通知所有 Agent
 - [x] 已更新 DOCUMENT_INDEX.md
 ```
 

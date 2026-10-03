@@ -6,6 +6,10 @@
 
 ---
 
+> ⛔ **【部分條目已廢棄】** 本索引含大量舊派工/自動化系統條目（Redis、Message Hub、`hq_gateway.py`、`scripts/*`、`.kiro/specs/hq-gateway`、`_agent/`），該體系已於 2026 全面廢除。
+> **現行唯一派工體系為 `.taskflow`**，請以 `01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md` 為準。下列標示「已刪除/廢棄」者僅為歷史記錄。
+
+
 ## 🔴 最高指導規範 (MANDATORY STANDARDS)
 
 在進行任何代碼修改前，所有 Agent 必須先閱讀對應領域的最高指導文件：
@@ -27,7 +31,7 @@
 - **[L1]** `README.md` (已完成) — Agent 治理規章導覽與目錄說明。
 - **[L1]** `AGENT_EXECUTION_PROTOCOL.md` (已完成) — 禁止試錯、診斷流程、執行前三確認。
 - **[L1]** `AGENT_RESPONSIBILITY_BOUNDARIES.md` (已完成) — 職責邊界、禁止跨專案修改。
-- **[L1]** `AGENT_COLLABORATION_PROTOCOL.md` (已完成) — HQ Message Hub 用法、知識沉澱規範。
+- **[L1]** `AGENT_COLLABORATION_PROTOCOL.md` — Agent 協作規範（現行 `.taskflow` 派工）、知識沉澱規範。
 - **[L2]** `TASK_ROUTING_AND_COMPLETION.md` (已完成) — 任務路由與完成驗收標準.
 - **[L1]** `INTERACTION_COMMON_SENSE.md` (已完成) — 人機交互與 Agent 溝通通識。
 - **[L1]** `CRITICAL_NO_TRIAL_AND_ERROR.md` (已完成) — 核心軍令：禁止試錯式修改程式碼原則。
@@ -141,7 +145,7 @@
 
 | 文件 | 位置 | 說明 |
 |------|------|------|
-| `SHARED_MESSAGE_HUB_GUIDE.md` 🟢 | `../SHARED_MESSAGE_HUB_GUIDE.md` | HQ Message Hub 使用指南（Agent 版） |
+| ~~`SHARED_MESSAGE_HUB_GUIDE.md`~~ | ❌ 已廢棄 | 舊 Message Hub 使用指南（體系已廢除） |
 | `scripts/README.md` 🟢 | [scripts/README.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/scripts/README.md) | HQ 核心維護與全自動任務分發觸發工具手冊 |
 
 
@@ -171,7 +175,7 @@
 | ~~`scripts/hq_redis_listener.py`~~ | HQ 分身監聽器（已由 `hq_gateway.py` 取代，此檔案不再需要） | ❌ 廢棄 |
 | `skills/hq_ops/analyse_agent_report.md` | HQ 子代理 skill，分析 Agent 回報並決策下一步 | ✅ 2026-06-08 建立 |
 | `skills/hq_ops/init_thread.md` | 初始化 context store thread | ✅ 2026-06-08 建立 |
-| `skills/hq_ops/message_hub_operations.md` | **【完整 Skill】** Message Hub 全操作手冊：發任務、諮詢、補充、重做、確認、查回報、故障排除 | ✅ 2026-06-09 建立 |
+| ~~`skills/hq_ops/message_hub_operations.md`~~ | ❌ 已廢棄 | 舊 Message Hub 操作手冊（體系已廢除） |
 | `skills/hq_ops/task_orchestration.md` | **【強制 Skill】** Consultation → Approval → Execution 的兩階段派工與驗收協議 | ✅ 2026-08-01 建立 |
 | `.kiro/specs/hq-gateway/requirements.md` | HQ Gateway 功能需求：取代 HQReportThread，自動決策諮詢回覆與實作驗收 | ✅ 2026-06-10 建立 |
 | `.kiro/specs/hq-gateway/design.md` | HQ Gateway 架構設計：ContextStore / DecisionEngine / GatewayListener 三 class | ✅ 2026-06-10 建立 |

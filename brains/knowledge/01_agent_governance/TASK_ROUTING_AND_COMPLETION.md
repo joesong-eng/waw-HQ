@@ -561,7 +561,7 @@ curl -I "https://xxx/page"
 
 #### 第一次違規
 1. 記錄到 `brains/history/punishment.log`
-2. 在 HQ Message Hub 發出警告
+2. 在 `.taskflow` 發出警告
 3. 要求立即修正
 4. 給予 2 小時時間
 
@@ -606,7 +606,7 @@ curl -I "https://xxx/page"
 
 **正確做法**:
 ```
-立即在 HQ Message Hub 回報：
+立即在 `.taskflow` 回報：
 
 "Phase X 遇到問題：
 - 問題描述：[具體錯誤]

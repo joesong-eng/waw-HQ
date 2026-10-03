@@ -1,3 +1,8 @@
+> ⛔ **【已廢棄】本文件為歷史存檔，描述的舊派工/自動化機制（Redis Pub/Sub、Message Hub、`hq_gateway.py`、`.taskbox`、`_agent/`）已全面廢除。**
+> **現行唯一派工體系為 `.taskflow` 純檔案信箱**，請參閱 `SIMPLE_FILE_DISPATCH_PROTOCOL.md`。
+
+---
+
 # 自動化工具設計共識（2026-06-08）
 
 > 這份文件記錄 Joe 與 HQ 經過完整一個工作天討論後達成的共識。

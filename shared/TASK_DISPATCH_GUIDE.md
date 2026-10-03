@@ -1,112 +1,80 @@
-# HQ 派工使用說明書
+# HQ 派工使用說明書 (.taskflow)
 
-> **版本**: 2026-08-01 v1.0  
-> **維護者**: HQ  
-> **適用對象**: 所有 Agent（Sophie / Ina / Mina / Allie / Hubie / Fio / Coli）
+> **版本**: 2026-10-03 v2.0
+> **維護者**: HQ
+> **適用對象**: 所有 Agent (Sophie / Mina / Ina / Allie / Hubie / Fio / Coli / Sidney)
 
 ---
 
 ## 1. 派工管道總覽
 
+本系統唯一派工管道為 **`.taskflow` 純檔案信箱**。
+
+> ⛔ 舊版 `core/hq_task_flow.sh`、Redis Pub/Sub、`.taskbox/*.json`、`_agent/inbox` 已全面廢除。
+
 ```
 Joe（使用者）
   ↓ 指令 / 截圖 / 問題描述
 HQ（協調者）
-  ↓ ./core/hq_task_flow.sh task <agent> <task_id> "<描述>" [priority]
+  ↓ ./dev_tools/waw_ops.sh task <agent> <task_id> --file <工單.md> [priority]
   ↓
-  ├─ ① HQ outbox 寫入 JSON 檔
-  │     路徑: WHQ/.taskbox/outbox/to_<Agent>.json
-  │
-  ├─ ② Redis context store 初始化
-  │     key: hq:thread:<task_id>:status → "pending"
-  │     key: hq:thread:<task_id>:agent → "<agent>"
-  │     key: hq:thread:<task_id>:description → "<描述>"
-  │
-  └─ ③ Redis Pub/Sub 發布
-        channel: agent/<agent>/task
-        payload: JSON 內容
+  └─ 寫入 .taskflow/<agent>/inbox/YYYYMMDD_HHMMSS_<task_id>.md
+         ↓
+     Agent 讀取 inbox → 執行 → 回報至 .taskflow/<agent>/outbox/
 ```
 
 ---
 
-## 2. ⚠️ 重要：Agent 如何確認收到任務
+## 2. 目錄結構
 
-### ❌ 錯誤做法
-> 檢查 `.taskbox/inbox/` 是否有新檔案來判斷是否有派工
-
-**原因**：目前 `hq_task_flow.sh` 只寫入 **HQ outbox**（`WHQ/.taskbox/outbox/to_<Agent>.json`），並透過 Redis Pub/Sub 發布。**不會** 直接寫入各 Agent 的 `.taskbox/inbox/`。
-
-### ✅ 正確做法（依優先順序）
-
-| 方法 | 說明 |
-|------|------|
-| **1. HQ 直接在對話中交代** | HQ 在 Codex chat 中直接貼上完整任務描述，Agent 直接執行 |
-| **2. 讀取 HQ outbox** | `cat /Users/ilawusong/Documents/WaW/WHQ/.taskbox/outbox/to_<Agent>.json` |
-| **3. 查 Redis context store** | `redis-cli GET hq:thread:<task_id>:status` |
-| **4. Redis Pub/Sub 訂閱** | `redis-cli SUBSCRIBE agent/<agent>/task`（需常駐 daemon，Codex 環境不適用） |
-
-> **結論**：在 Codex 環境下，Agent 是 conversation-driven，不是常駐 daemon。因此 **方法 1** 是最可靠的派工方式。
-
----
-
-## 3. 任務優先級
-
-| 優先級 | 說明 |
-|--------|------|
-| `critical` | 使用者正在等待、影響生產環境、需立即處理 |
-| `high` | 重要但非緊急，當日需完成 |
-| `normal` | 一般任務，合理排程即可 |
-
----
-
-## 4. 任務回報規範
-
-### 必須提供的回報內容
-- **截圖** 或 **log** 或 **API 回傳結果**（禁止純口頭結案）
-- 回報檔案放置路徑：`<專案>/_agent/REPORT_<timestamp>_<task_id>.md`
-
-### 回報範例結構
-```markdown
-# 回報：<task_id>
-- **狀態**: 完成 / 進行中 / 受阻
-- **發現**:
-  - ...
-- **操作**:
-  - ...
-- **證據**:
-  - (附截圖路徑 / log 片段 / curl 輸出)
-- **後續建議**:
-  - ...
+```
+.taskflow/
+├── <agent>/          # owner / member / infra / alliance / ihub / fio / coli / signalhub
+│   ├── inbox/        # HQ 派發給 Agent 的任務 (.md)
+│   └── outbox/       # Agent 回報給 HQ 的結果 (.md)
+├── archive/          # 封存區
+└── task_flow.log     # 派工操作日誌
 ```
 
 ---
 
-## 5. 常見 FAQ
+## 3. HQ 派發任務
 
-### Q: Redis Pub/Sub subscriber 數量為 0 怎麼辦？
-**A**: 這是正常的。Codex Agent 不是常駐程式，不會持續訂閱 channel。Pub/Sub 訊息是 fire-and-forget，發完就消失。所以 **HQ 會在對話中直接交代任務內容**，不依賴 Pub/Sub 作為唯一傳遞管道。
-
-### Q: 我在 `.taskbox/inbox/` 沒看到任務檔？
-**A**: 見第 2 節。`hq_task_flow.sh` 不會寫入你的 inbox，請改讀 HQ outbox 或直接看 HQ 在對話中的指示。
-
-### Q: 跨專案查詢需要什麼資料？
-**A**: 不可自行全域掃描（見 AGENTS.md 安全協議）。向 HQ 回報需求，由 HQ 協調取得。
-
----
-
-## 6. 派工腳本位置
-
-```
-/Users/ilawusong/Documents/WaW/WHQ/core/hq_task_flow.sh
-```
-
-### 使用語法
 ```bash
-./core/hq_task_flow.sh task <agent> <task_id> "<描述>" [priority]
+cd /Users/ilawusong/Documents/WaW
+
+# 短任務（指令列）
+./dev_tools/waw_ops.sh task <Agent名稱> <task_id> "<描述>" [priority]
+
+# 完整工單檔案（強烈推薦，防截斷）
+./dev_tools/waw_ops.sh task <Agent名稱> <task_id> --file <工單檔案路徑> [priority]
 ```
 
-### 範例
+**範例**：
+
 ```bash
-./core/hq_task_flow.sh task sophie SOPHIE-API-241 "修復 /details endpoint 504 問題" critical
+./dev_tools/waw_ops.sh task Sophie TASK_20261003_FIX_LOGIN --file /tmp/task.md P1
 ```
 
+---
+
+## 4. Agent 回報任務
+
+```bash
+bash ../../dev_tools/agent_report_to_hq_v2.sh <Agent名稱> <回報檔案.md>
+```
+
+回報會被複製到 `.taskflow/<agent>/outbox/YYYYMMDD_HHMMSS_<Agent>.md`。
+
+---
+
+## 5. 相關權威文檔
+
+- 派工協議：`brains/knowledge/01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md`
+- 啟動協議：`brains/knowledge/01_agent_governance/AGENT_STARTUP_PROTOCOL.md`
+- 快速指南：`brains/knowledge/01_agent_governance/TASKFLOW_QUICK_GUIDE.md`
+- 目錄說明：`.taskflow/README.md`
+
+---
+
+**最後更新**：2026-10-03

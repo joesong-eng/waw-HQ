@@ -10,50 +10,41 @@
 
 ### 1. 專業分工，互不越權
 - 每個 Agent 只負責自己專案的代碼
-- 需要跨專案協作時，透過 HQ Message Hub 溝通
+- 需要跨專案協作時，透過 HQ 以 `.taskflow` 派工溝通
 - 不要擅自修改其他 Agent 的代碼
 
 ### 2. 知識共享，統一規範
 - 技術標準由 HQ 統一維護
 - Agent 需遵守 `brains/knowledge/` 中的所有規範
-- 發現規範問題，透過 HQ Message Hub 提出
+- 發現規範問題，透過 `.taskflow` 回報 HQ 提出
 
 ### 3. 透明溝通，記錄完整
 - 所有決策與變更需記錄
 - 重要討論需存檔到 `brains/history/`
-- 使用 HQ Message Hub 確保訊息可追蹤
+- 使用 `.taskflow` outbox 確保訊息可追蹤
 
 ---
 
 ## 📡 通訊方式
 
-### HQ Message Hub（Redis Pub/Sub，v3.0 現行架構）
+本專案唯一協作／派工管道為 **`.taskflow` 純檔案信箱機制**。
 
-**核心機制**：Redis Pub/Sub + `hq_gateway.py`（launchd 常駐）
-
-**優點**：
-- ✅ 即時推送，Agent 無需輪詢
-- ✅ 自動觸發 `codex exec` 執行任務
-- ✅ 有記錄，所有訊息存檔可追蹤
+> ⛔ 舊版 Redis Pub/Sub、HQ Message Hub、`hq_gateway.py`（launchd 常駐）、`_agent/inbox` 已全面廢除，**不再使用**。
 
 **HQ 發布任務（唯一正確方式）**：
+
 ```bash
-./scripts/hq_task_flow.sh task <agent> <task_id> "<description>" [priority]
+cd /Users/ilawusong/Documents/WaW
+./dev_tools/waw_ops.sh task <agent> <task_id> --file <工單.md> [priority]
 ```
 
-> ❌ 禁止使用 `hq_send_task_via_hub.sh`（只寫檔案，不觸發 Redis）
-> ❌ 禁止使用 `hq_publish_and_trigger.sh`（繞過 Redis）
+**Agent 回報**：
 
-**Agent 回報完成**：
 ```bash
-bash ../HQ/scripts/agent_report_to_hq_v2.sh <agent_name> <report_file> ../HQ
+bash ../../dev_tools/agent_report_to_hq_v2.sh <agent> <回報.md>
 ```
 
-**詳細文檔**：
-- 權威協定：`MESSAGE_HUB_PROTOCOL.md`（v3.0）
-- 部署細節：`MESSAGE_HUB_V2_DEPLOYMENT.md`
-
----
+**權威協定**：`brains/knowledge/01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md`
 
 ## 🔄 協作流程
 
@@ -63,7 +54,7 @@ bash ../HQ/scripts/agent_report_to_hq_v2.sh <agent_name> <report_file> ../HQ
 
 1. **Sophie 提需求**
    ```bash
-   bash ../HQ/scripts/agent_report_to_hq_v2.sh sophie _agent/API_REQUEST.md ../HQ
+   bash ../../dev_tools/agent_report_to_hq_v2.sh sophie /tmp/API_REQUEST.md
    ```
 
 2. **HQ 審核需求**
@@ -73,16 +64,15 @@ bash ../HQ/scripts/agent_report_to_hq_v2.sh <agent_name> <report_file> ../HQ
 
 3. **HQ 發布任務給 Ina**
    ```bash
-   ./scripts/hq_task_flow.sh task ina TASK_001 "新增 XXX API" high
+   ./dev_tools/waw_ops.sh task ina TASK_001 "新增 XXX API" high
    ```
 
 4. **Ina 啟動時自動收到任務**
-   - 系統自動執行 `agent_check_hq.sh ina`
-   - 任務存入 `_agent/INBOX_*.json`
+   - 任務以 `.md` 存入 `.taskflow/infra/inbox/`
 
 5. **Ina 完成後回報**
    ```bash
-   bash ../HQ/scripts/agent_report_to_hq_v2.sh ina _agent/TASK_001_REPORT.md ../HQ
+   bash ../../dev_tools/agent_report_to_hq_v2.sh ina /tmp/TASK_001_REPORT.md
    ```
 
 6. **HQ 通知 Sophie**
@@ -99,7 +89,7 @@ bash ../HQ/scripts/agent_report_to_hq_v2.sh <agent_name> <report_file> ../HQ
 
 1. **Coli 提出問題**
    ```bash
-   bash ../HQ/scripts/agent_report_to_hq_v2.sh coli _agent/MQTT_TOPIC_ISSUE.md ../HQ
+   bash ../../dev_tools/agent_report_to_hq_v2.sh coli /tmp/MQTT_TOPIC_ISSUE.md
    ```
 
 2. **HQ 審核並更新規範**
@@ -109,8 +99,8 @@ bash ../HQ/scripts/agent_report_to_hq_v2.sh <agent_name> <report_file> ../HQ
 
 3. **HQ 通知所有相關 Agent**
    ```bash
-   ./scripts/hq_task_flow.sh task sophie STANDARD_UPDATE "MQTT 主題規範已更新" normal
-   ./scripts/hq_task_flow.sh task ina STANDARD_UPDATE "MQTT 主題規範已更新" normal
+   ./dev_tools/waw_ops.sh task sophie STANDARD_UPDATE "MQTT 主題規範已更新" normal
+   ./dev_tools/waw_ops.sh task ina STANDARD_UPDATE "MQTT 主題規範已更新" normal
    ```
 
 ---
@@ -172,27 +162,27 @@ bash ../HQ/scripts/agent_report_to_hq_v2.sh <agent_name> <report_file> ../HQ
 
 1. **不要直接修改知識庫**
    - 只有 HQ 有寫入權限
-   - Agent 需透過 HQ Message Hub 提交更新
+   - Agent 需透過 `.taskflow` 回報 HQ 提交更新
 
 2. **不要跳過 HQ 直接協作**
    - 避免資訊不同步
    - 確保所有決策有記錄
 
 3. **不要假設其他 Agent 的狀態**
-   - 需要確認時，透過 HQ Message Hub 詢問
+   - 需要確認時，透過 `.taskflow` 回報 HQ 詢問
    - 不要猜測或假設
 
 ---
 
 ## 🔗 相關文件
 
-- `MESSAGE_HUB_PROTOCOL.md` - HQ Message Hub 協定
+- `SIMPLE_FILE_DISPATCH_PROTOCOL.md` - 純檔案派工協定
 - `DB_MIGRATION_WORKFLOW.md` - 資料庫變更流程
 - `AGENT_EXECUTION_PROTOCOL.md` - Agent 執行規範
-- `../../../README_MESSAGE_HUB.md` - HQ Message Hub 使用說明
-- `../../../SHARED_MESSAGE_HUB_GUIDE.md` - Agent 通訊指南（公用）
+
+ - Agent 通訊指南（公用）
 
 ---
 
 **維護者**：HQ  
-**最後更新**：2026-06-09
+**最後更新**：2026-10-03

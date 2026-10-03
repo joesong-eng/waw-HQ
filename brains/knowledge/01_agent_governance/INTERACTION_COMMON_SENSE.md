@@ -23,7 +23,7 @@ User 的詢問可能僅是為了確認「通訊是否順暢」或「簡單的狀
 ## 2. 實戰案例記錄 (2026-05-05)
 
 **情境**：
-User 試驗性地詢問 Mina 的任務狀態，Mina 未能在 HQ Message Hub 回應。
+User 試驗性地詢問 Mina 的任務狀態，Mina 未能在 `.taskflow` 回報。
 
 **HQ 的錯誤反應**：
 「Mina 沒回答，我現在直接切換到 Mina 的 Workspace 視察代碼與提交紀錄...」 → *此舉為過度執行，偏離了 User 測試通訊順暢度的初衷。*
@@ -44,7 +44,7 @@ User 試驗性地詢問 Mina 的任務狀態，Mina 未能在 HQ Message Hub 回
 
 ### 原則：收到回報必須主動審核，不得只轉達
 
-當任何 Agent 透過 HQ Message Hub 回報任務完成時：
+當任何 Agent 透過 `.taskflow` outbox 回報任務完成時：
 - **HQ 必須主動審核**：進入對應 Workspace 或呼叫相關 API，驗證回報內容是否屬實。
 - **不接受口頭回報**：需有截圖、log、commit hash、API 回傳結果等實際證明。
 - **審核完成後才能通知下游**：不可在未審核的情況下直接轉達「完成」給其他 Agent 或 User。

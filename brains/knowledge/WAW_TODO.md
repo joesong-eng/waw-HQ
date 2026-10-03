@@ -105,7 +105,7 @@
 - [ ] payload 帶入 `source` 欄位
 - [ ] `init_context_store` 寫入 `hq:thread:<id>:source`
 
-### hq_gateway.py 修改
+### ~~hq_gateway.py 修改~~（已廢棄）
 
 - [ ] DecisionEngine 收到回報時讀取 `source`
 - [ ] `source=hermes` → Telegram Bot 通知，Hermes session 可繼續
@@ -128,7 +128,7 @@
 ## 🟢 第一階段：當前最優先 - 矛盾修復過渡割接 (對應 `PHASED_ROLLOUT_PLAN_20260528.md`)
 
 ### 1. 【階段 1: DB 結構與欄位補底】
-- [x] **Sophie (Owner)**：已透過 HQ Message Hub 向 Ina 提交 devices 新欄位 Schema 變更請求。
+- [x] **Sophie (Owner)**：已透過 `.taskflow` 向 Ina 提交 devices 新欄位 Schema 變更請求。
 - [ ] **Ina (Infra)**：審核 Sophie 的請求，於 `tg25-infra` 編寫 Migration 並於生產環境執行該 devices 表變更。 (⏳ 任務已派發)
 - [ ] **Ina (Infra)**：將 SQL 查詢的 `pulse_ratio` 變更為 `pulse_to_token`。 (⏳ 任務已派發)
 

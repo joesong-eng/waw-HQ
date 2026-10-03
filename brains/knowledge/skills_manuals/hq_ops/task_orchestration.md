@@ -27,7 +27,7 @@
 ### A1. HQ 建立諮詢任務
 
 ```bash
-./core/hq_task_flow.sh consult <agent> <thread_id> "<諮詢問題>" high
+./dev_tools/waw_ops.sh consult <agent> <thread_id> "<諮詢問題>" high
 ```
 
 **諮詢內容必須包含：**
@@ -98,7 +98,7 @@ Agent 在其專案目錄內啟動，**只讀不寫**（業務程式碼），回�
 只有在 Stage A 完成且已獲核准後執行：
 
 ```bash
-./core/hq_task_flow.sh task <agent> <thread_id>_EXEC "<執行任務說明>" high
+./dev_tools/waw_ops.sh task <agent> <thread_id>_EXEC "<執行任務說明>" high
 ```
 
 **執行任務 payload 必須帶入：**
@@ -195,5 +195,5 @@ ls .taskbox/outbox/
 ## 🔗 文件神經連結
 
 - **設計依據**：`CLI_AGENT_DISPATCH_DESIGN.md`
-- **實作腳本**：`../../core/hq_task_flow.sh`、`../../core/hq_gateway.py`
+- **實作腳本**：`../../dev_tools/waw_ops.sh`、`../../core/hq_gateway.py`
 - **治理規範**：`AGENT_EXECUTION_PROTOCOL.md`、`AGENT_RESPONSIBILITY_BOUNDARIES.md`

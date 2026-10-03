@@ -19,7 +19,7 @@
 4. ❌ **不允許非 Ina 角色在生產環境直接執行 `php artisan migrate`**（避免與實體 schema 衝突）
 
 ### 三必須原則
-1. ✅ **必須透過 HQ Message Hub 提交需求**
+1. ✅ **必須透過 `.taskflow` 提交需求給 HQ**
 2. ✅ **必須等待 Ina 審核與執行**
 3. ✅ **必須有完整的 Rollback 計劃**
 
@@ -56,14 +56,14 @@
 
 **如何提交？**
 
-透過 HQ Message Hub 發送需求：
+透過 `.taskflow` 提交需求給 HQ：
 
 ```bash
 # 在你的專案目錄執行
-./scripts/agent_report_to_hq.sh <agent_name> _agent/DB_MIGRATION_REQUEST.md
+bash ../../dev_tools/agent_report_to_hq_v2.sh <agent_name> /tmp/DB_MIGRATION_REQUEST.md
 ```
 
-**需求文件範本** (`_agent/DB_MIGRATION_REQUEST.md`)：
+**需求文件範本** (`/tmp/DB_MIGRATION_REQUEST.md`)：
 
 ```markdown
 # 資料庫變更需求
@@ -106,7 +106,7 @@
    - 包含 `up()` 和 `down()` 方法
 
 3. **回覆提交者**
-   - 透過 HQ Message Hub 回報進度
+   - 透過 `.taskflow` 回報進度
    - 說明 Migration 檔案位置
    - 告知預計執行時間
 
@@ -147,8 +147,8 @@
    ```
 
 5. **回報完成**
-   - 透過 HQ Message Hub 通知提交者
-   - 更新 `_agent/DB_MIGRATION_LOG.md`
+   - 透過 `.taskflow` 通知提交者
+   - 更新 `.taskflow/` 中的遷移紀錄
 
 ---
 
@@ -156,9 +156,9 @@
 
 ### Q: 如果我需要緊急變更資料庫怎麼辦？
 
-**A**: 透過 HQ Message Hub 留言，Ina 上線後會處理。如果真的很緊急，可以：
+**A**: 透過 `.taskflow` 回報 HQ，Ina 上線後會處理。如果真的很緊急，可以：
 
-1. 透過 HQ Message Hub 標註 `[緊急]`
+1. 透過 `.taskflow` 回報時標註 `[緊急]`
 2. 同時通知 Joe
 3. 在留言中說明：
    - 什麼功能壞了？
@@ -171,7 +171,7 @@
 1. ⚠️ **絕對不要直接改生產環境資料庫**
 2. 可以在 Staging 環境測試
 3. 撰寫詳細的 Migration 檔案
-4. 透過 HQ Message Hub 記錄你的操作
+4. 透過 `.taskflow` 記錄你的操作
 5. 等 Ina 上線後由她審核並正式部署
 
 ---
@@ -227,9 +227,9 @@ public function down(): void
 
 ## 🔗 相關文件
 
-- `MESSAGE_HUB_PROTOCOL.md` - HQ Message Hub 通訊協定
+- `SIMPLE_FILE_DISPATCH_PROTOCOL.md` - 純檔案派工協定
 - `AGENT_COLLABORATION_PROTOCOL.md` - Agent 協作規範
-- `../../../README_MESSAGE_HUB.md` - HQ Message Hub 使用說明
+
 
 ---
 
