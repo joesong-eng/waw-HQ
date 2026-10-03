@@ -3,7 +3,7 @@
 > **文件類型**：行動規格書（Action Spec / Master TODO）
 > **建立日期**：2026-10-03
 > **維護者**：HQ
-> **狀態**：Phase 1-2 已完成；Phase 3 待執行
+> **狀態**：Phase 1-3 已完成；僅餘 P5（push）與 Ina drop 評估
 > **適用範圍**：全 WaW 系統（HQ + 7 專案）
 > **觸發來源**：Joe 指示「重新整體整理還有哪些沒做好」+「刪除舊派工系統，以後不要有混淆的機會」
 
@@ -115,9 +115,11 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
   1. [x] HQ 裁定架構 → **ADR-001**：複用 Owner 基礎設施（共用 iotv9 DB + owner_subscriptions 表），不重造帳務
   2. [x] 派單 Sidney：`TASK_20261003_SIDNEY_IMPLEMENT_SUBSCRIPTION`（Model + status API + Middleware（預設停用）+ 橫幅）
   3. [x] 派單 Sophie：`TASK_20261003_SOPHIE_VERIFY_SIGNALHUB_SUBSCRIPTION_SCOPE`（驗證 users 表共用前提）
-  4. [ ] Sidney 完工回報
-  5. [ ] Sophie 驗證回報
-- **負責**：HQ（已裁定）→ Sidney / Sophie（執行中）
+  4. [x] Sidney 完工回報（2026-10-04，經 SOPHIE/SIDNEY_CONSOLIDATED）
+  5. [x] Sophie 驗證回報
+- **最終架構**：⚠️ 由 **ADR-003** 修訂——訂閱表統一為 `subscriptions`（廢除 `owner_subscriptions`）
+- **狀態**：✅ 已落地（Model/API/Middleware 就位）
+- **負責**：HQ（已裁定）→ Sidney / Sophie（已完成）
 - **決策文件**：`brains/knowledge/03_system_architecture/ADR-001_SIGNALHUB_SUBSCRIPTION.md`
 - **驗收**：`OwnerSubscription` Model 可載入；訂閱狀態 API 回 200；攔截預設停用。
 
@@ -127,8 +129,9 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
 - **狀態**：✅ 已派單 `TASK_20261003_SIDNEY_PURGE_RESIDUE_FILES`（P3）
 - **步驟**：
   1. [x] 工單已派發
-  2. [ ] Sidney 執行 `git rm` / 刪檔
-  3. [ ] 驗收：`git ls-files | grep -E '\.bak|\.old'` = 0 hits
+  2. [x] Sidney 執行（2026-10-04，實際清 16 檔）
+  3. [x] 驗收：`git ls-files | grep -E '\.bak|\.old'` = 0 hits
+- **狀態**：✅ 已清零
 - **負責**：Sidney
 
 ### 🟠 P2-1｜Member 未跟上 Device SSOT
@@ -141,9 +144,10 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
 - **步驟**：
   1. [x] HQ 裁定架構 → **ADR-002**：廢除 `MachineSession`，統一 `DeviceSession`
   2. [x] 派單 Mina：`TASK_20261003_MINA_ALIGN_DEVICE_SESSION_SSOT`（改 CallbackController 2 處 + 刪 Model）
-  3. [ ] Mina 完工回報
+  3. [x] Mina 完工回報（2026-10-03，E2E 驗收通過）
   4. [ ] Ina 評估 `machine_sessions` 表 drop 時機（P3，後續）
-- **負責**：HQ（已裁定）→ Mina（執行中）
+- **狀態**：✅ 程式碼已對齊（`MachineSession` = 0 hits）
+- **負責**：HQ（已裁定）→ Mina（已完成）
 - **決策文件**：`brains/knowledge/03_system_architecture/ADR-002_MEMBER_DEVICE_SESSION_SSOT.md`
 - **驗收**：`grep MachineSession app/` = 0 hits；退款路徑 200。
 
@@ -153,7 +157,8 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
 - **狀態**：✅ 已派單 `TASK_20261003_SOPHIE_FIX_README_STALE_MODEL_REFS`（P3）
 - **步驟**：
   1. [x] 工單已派發
-  2. [ ] Sophie 修正 3 處引用
+  2. [x] Sophie 修正（2026-10-04）
+- **狀態**：✅ 已修正
 - **負責**：Sophie
 
 ### 🟡 P3-2｜專案 WIP 未提交清理
@@ -166,17 +171,36 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
   | IOTwawS3 | 7 | 2026-09-17 | `AGENTS.md`、firmware、`wifi_service.c` |
   | SignalHub | 2 | 2026-09-21 | `profiles.blade.php.bak`（Sidney 工單範圍） |
 - **步驟**：
-  1. [ ] 逐專案確認 WIP 歸屬（是否為 Agent 未提交成果）
-  2. [ ] 派單對應 Agent 整理並提交或丟棄
-- **負責**：Hubie / Fio / Coli / Sidney
+  1. [x] 逐專案確認 WIP 歸屬（2026-10-04 GIT_CLEANUP 工單）
+  2. [x] 派單對應 Agent 整理並提交或丟棄
+- **狀態**：✅ 全部歸零（8 專案 dirty = 0）
+- **負責**：Hubie / Fio / Coli / Sidney（已完成）
 
 ### ⚪ P4｜WAW_TODO.md 歷史殘留清理
 
 - **現況**：`brains/knowledge/WAW_TODO.md` 含大量已廢除的「多管道派工架構（Hermes + VPS Redis）」待辦。
 - **步驟**：
-  1. [ ] 標記該段落為已廢棄（Hermes/Redis 派工不採用）
-  2. [ ] 保留仍有效的業務待辦（Alliance UI 技術債、SignalHub 核心流程）
+  1. [x] 標記該段落為已廢棄（Hermes/Redis 派工不採用）
+  2. [x] 保留仍有效的業務待辦（Alliance UI 技術債、SignalHub 核心流程）
+- **狀態**：✅ 已完成
 - **負責**：HQ
+
+---
+
+### 🟠 P5｜未 push commit（架構治理層，真正未結）
+
+- **現況**（2026-10-04 查核）：
+  | Repo | unpushed | 內容 |
+  |:---|:--:|:---|
+  | root | 11 | 舊系統清除 + 文件對齊 + ADR-001/002 + SPEC |
+  | Infra | 1 | `1181ba8` purge legacy _agent dispatch |
+  | Alliance | 1 | `2722b8b` purge legacy _agent dispatch |
+- **步驟**：
+  1. [ ] root push（11 commit）
+  2. [ ] Infra push（1 commit）
+  3. [ ] Alliance push（1 commit）
+- **負責**：HQ
+- **驗收**：各 repo `git log origin/main..HEAD` = 0
 
 ---
 
@@ -201,9 +225,13 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
 | 2026-10-03 | Phase 0 盤點 | ✅ |
 | 2026-10-03 | Phase 1 舊系統清除（HQ + 7 專案 + launchd） | ✅ |
 | 2026-10-03 | Phase 2 文件對齊 | ✅ |
-| 2026-10-03 | Phase 3 待辦收斂 | ⏳ 進行中 |
+| 2026-10-03 | Phase 3 待辦收斂（P1-P4 派工） | ✅ |
+| 2026-10-04 | Phase 3 P1-P4 全部完工（Agent 回報） | ✅ |
+| 2026-10-04 | ADR-003 取代 ADR-001（訂閱表統一 subscriptions） | ✅ |
+| 2026-10-04 | 全 8 專案 git dirty 歸零 | ✅ |
+| 2026-10-04 | P5 未 push（root 11 / Infra 1 / Alliance 1） | ⏳ 未結 |
 
 ---
 
 **維護者**：HQ
-**最後更新**：2026-10-03
+**最後更新**：2026-10-04
