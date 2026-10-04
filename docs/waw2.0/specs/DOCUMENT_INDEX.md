@@ -59,7 +59,7 @@
 - `HQ_DEPLOYMENT_SOP.md` (已完成) — HQ 部署與自動化維護標準作業程序。
 - `MEMBER_DEPLOYMENT_GUIDE.md` (已完成) — 會員端後台系統部署指南。
 - `IHUB_APK_BUILD_TOOL.md` (已完成) — iHub APK 自動化建置工具指南。
-- [scripts/README.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/scripts/README.md) 🟢 (已更新) — HQ 核心維護腳本與全自動任務分發觸發工具手冊。
+- [scripts/README.md](file:///Users/ilawusong/Documents/WaW/scripts/README.md) 🟢 (已更新) — HQ 核心維護腳本與全自動任務分發觸發工具手冊。
 
 ### 05_product_and_business_flows/ (產品與業務流)
 依業務域分離的產品需求與底層交互流程細則：
@@ -122,7 +122,7 @@
 | 文件 | 位置 | 說明 |
 |------|------|------|
 | `SHARED_MESSAGE_HUB_GUIDE.md` 🟢 | `../SHARED_MESSAGE_HUB_GUIDE.md` | HQ Message Hub 使用指南（Agent 版） |
-| `scripts/README.md` 🟢 | [scripts/README.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/scripts/README.md) | HQ 核心維護與全自動任務分發觸發工具手冊 |
+| `scripts/README.md` 🟢 | [scripts/README.md](file:///Users/ilawusong/Documents/WaW/scripts/README.md) | HQ 核心維護與全自動任務分發觸發工具手冊 |
 
 
 ## ⚠️ 已廢棄的通訊方式

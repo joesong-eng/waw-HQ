@@ -71,7 +71,7 @@
 - **[L4]** `HQ_DEPLOYMENT_SOP.md` (已完成) — HQ 部署與自動化維護標準作業程序。
 - **[L4]** `MEMBER_DEPLOYMENT_GUIDE.md` (已完成) — 會員端後台系統部署指南。
 - **[L4]** `IHUB_APK_BUILD_TOOL.md` (已完成) — iHub APK 自動化建置工具指南。
-- [scripts/README.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/scripts/README.md) 🟢 (已更新) — HQ 核心維護腳本與全自動任務分發觸發工具手冊。
+- [scripts/README.md](file:///Users/ilawusong/Documents/WaW/scripts/README.md) 🟢 (已更新) — HQ 核心維護腳本與全自動任務分發觸發工具手冊。
 - **[L4]** `LAUNCHD_AGENT_ARCHITECTURE.md` (已完成) — launchd Agent 架構設計原則與 com.hq.all_agents 廢棄記錄。
 
 ### 05_business_flows/ (產品與業務流)
@@ -146,7 +146,7 @@
 | 文件 | 位置 | 說明 |
 |------|------|------|
 | ~~`SHARED_MESSAGE_HUB_GUIDE.md`~~ | ❌ 已廢棄 | 舊 Message Hub 使用指南（體系已廢除） |
-| `scripts/README.md` 🟢 | [scripts/README.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/scripts/README.md) | HQ 核心維護與全自動任務分發觸發工具手冊 |
+| `scripts/README.md` 🟢 | [scripts/README.md](file:///Users/ilawusong/Documents/WaW/scripts/README.md) | HQ 核心維護與全自動任務分發觸發工具手冊 |
 
 
 ## ⚠️ 已廢棄的通訊方式

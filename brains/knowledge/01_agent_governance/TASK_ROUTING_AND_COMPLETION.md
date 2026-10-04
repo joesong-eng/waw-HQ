@@ -177,7 +177,7 @@ def identify_project(user_message):
 ```python
 def dispatch_via_exchange(project, instruction):
     task_id = f"TASK_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    inbox_path = f"~/Documents/sysWawIot/{project}/exchange/{project}_inbox"
+    inbox_path = f"~/Documents/WaW/{project}/exchange/{project}_inbox"
     
     with open(f"{inbox_path}/{task_id}.md", "w") as f:
         f.write(f"# {task_id}\n\n{instruction}")
@@ -514,7 +514,7 @@ Phase 2 已完成並通過驗收，可進入 Phase 3。
 #### 1. Git 驗證
 ```bash
 # 本地倉庫
-git -C ~/Documents/sysWawIot/[Project] log -1 --oneline
+git -C ~/Documents/WaW/[Project] log -1 --oneline
 
 # 生產環境
 ssh server "cd /path && git log -1 --oneline"

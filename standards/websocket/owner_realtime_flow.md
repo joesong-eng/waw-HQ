@@ -161,7 +161,7 @@ Reverb 事件只能用 `device_id` / `chip_id` 找到既有卡片並更新，不
 
 本文件於 2026-07-14 根據 Sophie 任務 `TASK_20260713_SOPHIE_VERIFY_REALTIME_FLOW_RETRY2` 更新。查證報告位置：
 
-`/Users/ilawusong/Documents/sysWawIot/waw-core/_agent/REPORT_20260713_185021_TASK_20260713_SOPHIE_VERIFY_REALTIME_FLOW_RETRY2.md`
+`/Users/ilawusong/Documents/WaW/PROJECT/Owner/_agent/REPORT_20260713_185021_TASK_20260713_SOPHIE_VERIFY_REALTIME_FLOW_RETRY2.md`
 
 ## 🔗 文件神經連結
 

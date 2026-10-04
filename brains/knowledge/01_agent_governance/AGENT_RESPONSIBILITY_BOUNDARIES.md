@@ -66,7 +66,7 @@
 
 | 專案名稱 | 路徑 | 負責 Agent | 職責範圍 |
 |------|------|--------|---------|
-| **HQ** | `/Users/ilawusong/Documents/sysWawIot/HQ` | **Hera** (HQ) | 協調、維護知識庫（唯一寫入）、任務規劃與派發。 |
+| **HQ** | `/Users/ilawusong/Documents/WaW` | **Hera** (HQ) | 協調、維護知識庫（唯一寫入）、任務規劃與派發。 |
 | **`waw-infra`** | 部署於雲端 (Ina) | **Ina** (Infra) | 資料庫、MQTT Server、Queue 管理與 Laravel 核心 API。**負責訂閱授權（防流浪機/流浪店）硬體攔截**。 |
 | **`waw-wallet`** | 部署於雲端 (Mina) | **Mina** (Member) | 玩家端電子錢包、掃碼開分與洗分前端、第三方支付對接。 |
 | **`waw-cloud`** | 部署於雲端 (Sophie/Allie) | **Sophie** (Owner) & **Allie** (Alliance) | 多租戶管理後台。負責「裝配商/經銷商/店主/機台主」權限、**機台部署關係建立**、**分潤協議設置**、**店面營運工具（交班、LINE警報）**。 |

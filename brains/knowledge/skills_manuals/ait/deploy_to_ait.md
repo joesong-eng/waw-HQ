@@ -13,12 +13,12 @@
 ## 執行流程
 
 ### 1. 確認文件路徑
-- 本地：`/Users/ilawusong/Documents/sysWawIot/ait.tg25.win/`
+- 本地：`/Users/ilawusong/Documents/WaW/ait.tg25.win/`
 - 遠端：`/www/wwwroot/ait.tg25.win/`（VPS yd47）
 
 ### 2. Git 操作
 ```bash
-cd /Users/ilawusong/Documents/sysWawIot/ait.tg25.win
+cd /Users/ilawusong/Documents/WaW/ait.tg25.win
 git add .
 git commit -m "feat: [任務描述]"
 git push origin main

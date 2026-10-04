@@ -32,12 +32,12 @@ V9 自動化運維工具是基於 MCP (Model Context Protocol) 的自動化部�
 
 ### 實作腳本 (Python)
 ```
-/Users/ilawusong/Documents/sysWawIot/pubdocs/01_system/00_common/tools/mcp/servers/v9_ops_server.py
+/Users/ilawusong/Documents/WaW/pubdocs/01_system/00_common/tools/mcp/servers/v9_ops_server.py
 ```
 
 ### MCP 配置文件
 ```
-/Users/ilawusong/Documents/sysWawIot/Alliance/.kiro/settings/mcp.json
+/Users/ilawusong/Documents/WaW/PROJECT/Alliance/.kiro/settings/mcp.json
 ```
 
 **注意**: 其他專案也可能有自己的 `mcp.json` 配置。
@@ -325,7 +325,7 @@ mcp_v9_ops_v9_deploy_project(
 ### 查看 mcp.json
 
 ```bash
-cat /Users/ilawusong/Documents/sysWawIot/Alliance/.kiro/settings/mcp.json
+cat /Users/ilawusong/Documents/WaW/PROJECT/Alliance/.kiro/settings/mcp.json
 ```
 
 **範例配置**:
@@ -335,7 +335,7 @@ cat /Users/ilawusong/Documents/sysWawIot/Alliance/.kiro/settings/mcp.json
     "v9-ops": {
       "command": "python",
       "args": [
-        "/Users/ilawusong/Documents/sysWawIot/pubdocs/01_system/00_common/tools/mcp/servers/v9_ops_server.py"
+        "/Users/ilawusong/Documents/WaW/pubdocs/01_system/00_common/tools/mcp/servers/v9_ops_server.py"
       ],
       "disabled": false,
       "autoApprove": []

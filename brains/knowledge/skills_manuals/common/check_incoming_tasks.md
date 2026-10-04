@@ -17,7 +17,7 @@ Agent 不需要主動輪詢。`hq_gateway.py`（launchd 常駐）收到 Redis �
 
 ### 列出最新回報
 ```bash
-ls -lht /Users/ilawusong/Documents/sysWawIot/HQ/.taskbox/inbox/ | head -10
+ls -lht /Users/ilawusong/Documents/WaW/.taskbox/inbox/ | head -10
 ```
 
 ### 查看 context store 狀態
@@ -30,7 +30,7 @@ redis-cli LRANGE hq:thread:${TASK_ID}:history 0 -1
 
 ### 查看 gateway 即時 log
 ```bash
-tail -f /Users/ilawusong/Documents/sysWawIot/HQ/logs/hq_gateway.out.log
+tail -f /Users/ilawusong/Documents/WaW/logs/hq_gateway.out.log
 ```
 
 ## 標準回報格式（Agent 執行完後產生）

@@ -229,6 +229,6 @@ Joe 需要在以下三個選項中選擇：
 
 - ← [WAW 2.0 架構規格](../../../03_system_architecture/WAW_2.0_ARCHITECTURE_SPEC.md)
 - ← [V9 系統拆分設計](../../../waw2.0_specs/V9_SYSTEM_SPLITTING_DESIGN.md)
-- ← [Ina 連線修復報告](file:///Users/ilawusong/Documents/sysWawIot/tg25-infra/_agent/INA_REPORT_20260616_DEPLOYMENT_SKILLS.md)
-- ← [Sophie PHP 部署報告](file:///Users/ilawusong/Documents/sysWawIot/waw-core/_agent/REPORT_20260616_000544_TASK_20260616_WAW2_PHP_DEPLOY_SKILL.md)
-- ← [Ina Python API 部署報告](file:///Users/ilawusong/Documents/sysWawIot/tg25-infra/_agent/REPORT_20260615_233314_TASK_20260615_DEPLOY_VPS_WAW2.md)
+- ← [Ina 連線修復報告](file:///Users/ilawusong/Documents/WaW/PROJECT/Infra/_agent/INA_REPORT_20260616_DEPLOYMENT_SKILLS.md)
+- ← [Sophie PHP 部署報告](file:///Users/ilawusong/Documents/WaW/PROJECT/Owner/_agent/REPORT_20260616_000544_TASK_20260616_WAW2_PHP_DEPLOY_SKILL.md)
+- ← [Ina Python API 部署報告](file:///Users/ilawusong/Documents/WaW/PROJECT/Infra/_agent/REPORT_20260615_233314_TASK_20260615_DEPLOY_VPS_WAW2.md)

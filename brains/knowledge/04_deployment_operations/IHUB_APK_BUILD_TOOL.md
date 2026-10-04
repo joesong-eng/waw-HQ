@@ -2,7 +2,7 @@
 
 ## 📍 位置
 
-`/Users/ilawusong/Documents/sysWawIot/HQ/tools/ihubApp`
+`/Users/ilawusong/Documents/WaW/tools/ihubApp`
 
 ## 🎯 用途
 
@@ -11,19 +11,19 @@
 ## 🏗️ 三階段工作流程
 
 ### 階段 1：Web 內容開發 (Hubie)
-- **專案路徑**: `/Users/ilawusong/Documents/sysWawIot/iHub`
+- **專案路徑**: `/Users/ilawusong/Documents/WaW/PROJECT/iHub`
 - **負責 Agent**: Hubie
 - **部署目標**: `ihub.tg25.win` (VPS: yd47)
 - **內容**: Node.js Web 應用 (WebView 內容)
 
 ### 階段 2：APK 打包 (HQ Tools)
-- **工具路徑**: `/Users/ilawusong/Documents/sysWawIot/HQ/tools/ihubApp`
+- **工具路徑**: `/Users/ilawusong/Documents/WaW/tools/ihubApp`
 - **技術**: Apache Cordova
 - **輸出**: Android APK 檔案
 - **特性**: WebView Wrapper，指向遠端 URL
 
 ### 階段 3：APK 發布 (Ina)
-- **發布路徑**: `/Users/ilawusong/Documents/sysWawIot/tg25-infra/web/downloads/apk/`
+- **發布路徑**: `/Users/ilawusong/Documents/WaW/PROJECT/Infra/web/downloads/apk/`
 - **負責 Agent**: Ina
 - **下載 URL**: `https://api.tg25.win/downloads/apk/ihub-v1.0.x.apk`
 - **版本管理**: `manifest.json`
@@ -58,7 +58,7 @@
 ## 📝 打包步驟（簡要）
 
 ```bash
-cd /Users/ilawusong/Documents/sysWawIot/HQ/tools/ihubApp
+cd /Users/ilawusong/Documents/WaW/tools/ihubApp
 cordova build android --release
 ```
 

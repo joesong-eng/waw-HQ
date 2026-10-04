@@ -178,7 +178,7 @@
 
 #### 風險評估
 - **影響範圍**: DevBy3d 3D 拓樸編輯器
-  - 新位置：`/Users/ilawusong/Documents/sysWawIot/HQ/tools/DevBy3d/`
+  - 新位置：`/Users/ilawusong/Documents/WaW/tools/DevBy3d/`
 - **風險等級**: Low（純文件更新，不影響業務系統）
 - **可逆性**: 高（Git 可回退）
 

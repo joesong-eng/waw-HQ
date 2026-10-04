@@ -119,7 +119,7 @@ ALTER TABLE device_orphan_logs
 
 - **設計定稿**：`brains/knowledge/05_business_flows/game_v0_arcade/DESIGN_FINALIZED_20260619.md`
 - **技術標準**：`brains/knowledge/02_technical_standards/PULSE_BASED_DATA_FLOW.md`
-- **完整回報**：`/Users/ilawusong/Documents/sysWawIot/Member/_agent/REPORT_20260620_020628_TASK_MINA_MEMBER_IMPLEMENTATION_20260620.md`
+- **完整回報**：`/Users/ilawusong/Documents/WaW/PROJECT/Member/_agent/REPORT_20260620_020628_TASK_MINA_MEMBER_IMPLEMENTATION_20260620.md`
 
 ---
 

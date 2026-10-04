@@ -115,23 +115,23 @@
 ## Agent 專屬資訊
 
 ### Sophie (Owner)
-- 專案路徑：/Users/ilawusong/Documents/sysWawIot/wawOwner
+- 專案路徑：/Users/ilawusong/Documents/WaW/PROJECT/Owner
 - 負責：營運商後台、設備管理
 - 主要技術：Vue.js, Laravel
 - Symlink：pubdocs → HQ/pubdocs
 
 ### Allie (Alliance)
-- 專案路徑：/Users/ilawusong/Documents/sysWawIot/Alliance
+- 專案路徑：/Users/ilawusong/Documents/WaW/PROJECT/Alliance
 - 負責：供應商、代理商管理
 - 主要技術：React, Node.js
 
 ### Mina (Member)
-- 專案路徑：/Users/ilawusong/Documents/sysWawIot/Member
+- 專案路徑：/Users/ilawusong/Documents/WaW/PROJECT/Member
 - 負責：玩家前端、支付系統
 - 主要技術：Vue.js, PWA
 
 ### Ina (Infra)
-- 專案路徑：/Users/ilawusong/Documents/sysWawIot/tg25-infra
+- 專案路徑：/Users/ilawusong/Documents/WaW/PROJECT/Infra
 - 負責：資料庫、MQTT、基礎設施
 - 主要技術：PostgreSQL, MQTT, Docker
 

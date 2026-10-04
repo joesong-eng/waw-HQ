@@ -34,7 +34,7 @@
 **驗證方式**:
 ```bash
 # 檢查是否有過時的命名
-grep -r "X-API-Key\|X-Api-Key" /Users/ilawusong/Documents/sysWawIot/HQ --include="*.md" --include="*.yaml"
+grep -r "X-API-Key\|X-Api-Key" /Users/ilawusong/Documents/WaW --include="*.md" --include="*.yaml"
 
 # 應該回傳空（沒有結果）
 ```
@@ -58,7 +58,7 @@ grep -r "X-API-Key\|X-Api-Key" /Users/ilawusong/Documents/sysWawIot/HQ --include
 **驗證方式**:
 ```bash
 # 檢查是否有過時的主題格式
-grep -r "v9/kiosk/\|waw/kiosk/\|up/kiosk/\|down/kiosk/" /Users/ilawusong/Documents/sysWawIot/HQ --include="*.md"
+grep -r "v9/kiosk/\|waw/kiosk/\|up/kiosk/\|down/kiosk/" /Users/ilawusong/Documents/WaW --include="*.md"
 
 # 應該只在 archive/ 或 history/ 中出現
 ```
@@ -149,25 +149,25 @@ grep -r "v9/kiosk/\|waw/kiosk/\|up/kiosk/\|down/kiosk/" /Users/ilawusong/Documen
 # 文件一致性檢查腳本
 
 echo "=== 檢查過時的 API 認證命名 ==="
-grep -r "X-API-Key\|X-Api-Key" /Users/ilawusong/Documents/sysWawIot/HQ \
+grep -r "X-API-Key\|X-Api-Key" /Users/ilawusong/Documents/WaW \
   --include="*.md" --include="*.yaml" \
   --exclude-dir=archive --exclude-dir=history
 
 echo "=== 檢查過時的 MQTT 主題格式 ==="
 grep -r "v9/kiosk/\|waw/kiosk/\|up/kiosk/\|down/kiosk/" \
-  /Users/ilawusong/Documents/sysWawIot/HQ \
+  /Users/ilawusong/Documents/WaW \
   --include="*.md" \
   --exclude-dir=archive --exclude-dir=history
 
 echo "=== 檢查錯誤的 SSH port ==="
 grep -r "port.*22[^0-9]\|:22[^0-9]" \
-  /Users/ilawusong/Documents/sysWawIot/HQ \
+  /Users/ilawusong/Documents/WaW \
   --include="*.md" --include="*.yaml" \
   --exclude-dir=archive --exclude-dir=history
 
 echo "=== 檢查 HTTP 403 狀態碼（應該用 401）==="
 grep -r "403.*Internal-Key\|Internal-Key.*403" \
-  /Users/ilawusong/Documents/sysWawIot/HQ \
+  /Users/ilawusong/Documents/WaW \
   --include="*.md" --include="*.yaml" \
   --exclude-dir=archive --exclude-dir=history
 ```

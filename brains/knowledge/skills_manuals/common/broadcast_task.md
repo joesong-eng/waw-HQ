@@ -11,7 +11,7 @@ HQ 需要同時派發任務給多個 Agent 時使用。
 
 ### 廣播給多個 Agent
 ```bash
-cd /Users/ilawusong/Documents/sysWawIot/HQ
+cd /Users/ilawusong/Documents/WaW
 
 # 依序對每個 Agent 發任務
 ./scripts/hq_task_flow.sh task sophie TASK_YYYYMMDD_001 "<描述>" high

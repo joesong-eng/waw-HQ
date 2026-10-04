@@ -204,8 +204,8 @@ WAW 2.0 引入 `machines` 表，取代舊的 `devices` 表用於營運管理：
 - `../../../03_system_architecture/WAW_2.0_ARCHITECTURE_SPEC.md` - WAW 2.0 架構規範
 
 ### 中關聯（建議讀）
-- `/Users/ilawusong/Documents/sysWawIot/tg25-infra/mqtt/scripts/listener.py` - Delta 計算實作
-- `/Users/ilawusong/Documents/sysWawIot/waw-core/app/Models/MachineExtensions.php` - 期間統計實作
+- `/Users/ilawusong/Documents/WaW/PROJECT/Infra/mqtt/scripts/listener.py` - Delta 計算實作
+- `/Users/ilawusong/Documents/WaW/PROJECT/Owner/app/Models/MachineExtensions.php` - 期間統計實作
 
 ### 排除混淆
 - `delta_value` ≠ 正負號區分入出金（永遠正數）

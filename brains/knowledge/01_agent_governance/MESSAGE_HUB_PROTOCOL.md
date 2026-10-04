@@ -204,7 +204,7 @@ HQ/_agent/
 ### Step 1：HQ 發任務
 
 ```bash
-cd /Users/ilawusong/Documents/sysWawIot/HQ
+cd /Users/ilawusong/Documents/WaW
 ./scripts/hq_task_flow.sh task sophie TASK_001 "實作分潤 API" high
 ```
 
@@ -247,8 +247,8 @@ cat .taskbox/inbox/<最新檔案>.json
 launchctl list | grep com.hq.agents.supervisor
 
 # 查看日誌
-tail -f /Users/ilawusong/Documents/sysWawIot/HQ/logs/agents_supervisor.out.log
-tail -f /Users/ilawusong/Documents/sysWawIot/HQ/logs/agents_supervisor.err.log
+tail -f /Users/ilawusong/Documents/WaW/logs/agents_supervisor.out.log
+tail -f /Users/ilawusong/Documents/WaW/logs/agents_supervisor.err.log
 
 # 重啟服務
 launchctl unload ~/Library/LaunchAgents/com.hq.agents.supervisor.plist

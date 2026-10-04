@@ -57,7 +57,7 @@ graph TD
 ### 2. MQTT TLS 安全通訊與保活機制
 *   **安全加密**：全面基於 MbedTLS 實作 TLSv1.2/v1.3 加密連線，使用憑證雙向驗證（Client Certificate & Server CA）。
 *   **保活機制**：MQTT Keep-Alive 設為 **120 秒**。實作優雅的 Last Will (遺言主題) 以即時回報設備非正常離線狀態。
-*   **心跳與診斷**：標準化上報心跳包（每 5 分鐘一次），回報系統 Uptime、Free Heap 及 WiFi RSSI，主題規格嚴格遵守 [02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/brains/knowledge/02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md)。
+*   **心跳與診斷**：標準化上報心跳包（每 5 分鐘一次），回報系統 Uptime、Free Heap 及 WiFi RSSI，主題規格嚴格遵守 [02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md](file:///Users/ilawusong/Documents/WaW/brains/knowledge/02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md)。
 *   **連線狀態機**：統一實作「退避重試（Exponential Backoff）」機制，在連線失敗時遞增等待時間（例如 1s, 2s, 4s, 8s... 最大至 60s），避免因伺服器重啟造成大量設備瞬間重連的 DDoS 效應。
 
 ### 3. OTA 自動升級與 NVS 分區保護
@@ -118,16 +118,16 @@ graph TD
 
 ### 強關聯（必讀）
 > 開發 `wawIoT-Core SDK` 或整合至各自專案前，必須先閱讀以下文件
-- [02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/brains/knowledge/02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md) - 心跳診斷與事件上報的 Topic 命名規範
-- [05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/brains/knowledge/05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md) - 兌幣卡紙鈔機控制模組的詳細業務流程與時間戳防錯
+- [02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md](file:///Users/ilawusong/Documents/WaW/brains/knowledge/02_technical_standards/TECHNICAL_NAMING_AND_PAYLOAD_STANDARD.md) - 心跳診斷與事件上報的 Topic 命名規範
+- [05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md](file:///Users/ilawusong/Documents/WaW/brains/knowledge/05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md) - 兌幣卡紙鈔機控制模組的詳細業務流程與時間戳防錯
 
 ### 中關聯（建議讀）
 > 了解硬體接口對應與網路佈局
-- [hardware_pulse_mapping.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/brains/knowledge/02_technical_standards/HARDWARE_PULSE_MAPPING.md) - 遊戲卡數位 I/O 對應規格
+- [hardware_pulse_mapping.md](file:///Users/ilawusong/Documents/WaW/brains/knowledge/02_technical_standards/HARDWARE_PULSE_MAPPING.md) - 遊戲卡數位 I/O 對應規格
 
 ### 排除混淆
 > 與底層通訊架構無關的應用層邏輯
-- [05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md](file:///Users/ilawusong/Documents/sysWawIot/HQ/brains/knowledge/05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md) - 雖然也是兌幣業務，但屬於上層伺服器與玩家前端的 API 調用，非韌體底層 SDK 設計範疇
+- [05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md](file:///Users/ilawusong/Documents/WaW/brains/knowledge/05_business_flows/kiosk_v0_exchange/KIOSK_EXCHANGE_FLOW.md) - 雖然也是兌幣業務，但屬於上層伺服器與玩家前端的 API 調用，非韌體底層 SDK 設計範疇
 
 ---
 

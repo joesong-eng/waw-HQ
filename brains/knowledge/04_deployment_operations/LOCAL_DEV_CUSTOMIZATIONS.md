@@ -47,11 +47,11 @@ cp /Users/ilawusong/.hermes/hermes-agent/hermes_cli/banner.py.backup \
 hermes () {
     case "$1" in
         (hq) echo "🚀 切換到 HQ 工作區..."
-            cd /Users/ilawusong/Documents/sysWawIot/HQ
+            cd /Users/ilawusong/Documents/WaW
             shift
             eval "$HERMES_BIN" "$@" ;;
         (member) echo "🚀 切換到 Member 工作區..."
-            cd /Users/ilawusong/Documents/sysWawIot/Member
+            cd /Users/ilawusong/Documents/WaW/PROJECT/Member
             shift
             eval "$HERMES_BIN" "$@" ;;
         # ... 其他 workspace
@@ -82,7 +82,7 @@ hermes () {
 
 ## 維護建議
 
-1. **定期備份**：重要的客製化配置應定期備份到 `~/Documents/sysWawIot/HQ/Temps/backups/`
+1. **定期備份**：重要的客製化配置應定期備份到 `~/Documents/WaW/HQ/Temps/backups/`
 2. **版本記錄**：每次修改都應更新本文件，記錄修改日期和原因
 3. **測試恢復**：定期測試恢復流程，確保備份有效
 4. **文件同步**：如有多台開發機，應同步此文件到其他機器

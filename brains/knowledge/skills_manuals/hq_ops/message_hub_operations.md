@@ -288,7 +288,7 @@ redis-cli SUBSCRIBE agent/sophie/task   # 手動監聽看有沒有訊息
 launchctl list | grep com.hq.agents.supervisor
 
 # 3. 看 supervisor 日誌
-tail -50 /Users/ilawusong/Documents/sysWawIot/HQ/logs/hq_gateway.out.log
+tail -50 /Users/ilawusong/Documents/WaW/logs/hq_gateway.out.log
 ```
 
 ### Redis 沒回應

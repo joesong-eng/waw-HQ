@@ -7,7 +7,7 @@
 
 > **建立日期**：2026-06-10
 > **狀態**：✅ 現役（launchd 常駐）
-> **核心檔案**：`scripts/hq_gateway.py`（完整路徑：`/Users/ilawusong/Documents/sysWawIot/HQ/scripts/hq_gateway.py`）
+> **核心檔案**：`scripts/hq_gateway.py`（完整路徑：`/Users/ilawusong/Documents/WaW/scripts/hq_gateway.py`）
 
 ---
 
@@ -167,7 +167,7 @@ agent/*/approval   ← 只記 log，不觸發執行
 
 ```bash
 # 查看即時 log
-tail -f /Users/ilawusong/Documents/sysWawIot/HQ/logs/hq_gateway.out.log
+tail -f /Users/ilawusong/Documents/WaW/logs/hq_gateway.out.log
 
 # 重啟服務
 launchctl unload ~/Library/LaunchAgents/com.hq.agents.supervisor.plist

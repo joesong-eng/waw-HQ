@@ -111,8 +111,8 @@ launchctl list | grep com.hq
 
 **查看日誌**：
 ```bash
-tail -f /Users/ilawusong/Documents/sysWawIot/HQ/logs/agents_supervisor.out.log
-tail -f /Users/ilawusong/Documents/sysWawIot/HQ/logs/agents_supervisor.err.log
+tail -f /Users/ilawusong/Documents/WaW/logs/agents_supervisor.out.log
+tail -f /Users/ilawusong/Documents/WaW/logs/agents_supervisor.err.log
 ```
 
 **停止服務**：

@@ -719,17 +719,17 @@ ORDER BY total_income DESC;
 ## 📚 參考文件
 
 ### 上游依據
-- `/Users/ilawusong/Documents/sysWawIot/HQ/waw2.0_specs/WAW_2.0_ARCHITECTURE_SPEC.md`
+- `/Users/ilawusong/Documents/WaW/waw2.0_specs/WAW_2.0_ARCHITECTURE_SPEC.md`
   - 核心業務規則與實體拆分邏輯
   - 訂閱控制與軟性限制機制
 
 ### 現有資料庫
-- `/Users/ilawusong/Documents/sysWawIot/tg25-infra/_agent/DB_MANIFEST.md`
+- `/Users/ilawusong/Documents/WaW/PROJECT/Infra/_agent/DB_MANIFEST.md`
   - 現有表結構清單
   - 避免重複建表
 
 ### 部署規範
-- `/Users/ilawusong/Documents/sysWawIot/tg25-infra/GEMINI.md`
+- `/Users/ilawusong/Documents/WaW/PROJECT/Infra/GEMINI.md`
   - VPS 部署流程與坑手冊
   - DB 連線資訊
 

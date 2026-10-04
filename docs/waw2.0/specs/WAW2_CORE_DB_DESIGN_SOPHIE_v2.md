@@ -1047,4 +1047,4 @@ public function test_machine_deployment_history_tracks_movements()
 
 *文件建立者：Sophie (wawOwner Agent)*  
 *建立時間：2026-06-10*  
-*文件路徑：/Users/ilawusong/Documents/sysWawIot/HQ/waw2.0_specs/WAW2_CORE_DB_DESIGN_SOPHIE_v2.md*
+*文件路徑：/Users/ilawusong/Documents/WaW/waw2.0_specs/WAW2_CORE_DB_DESIGN_SOPHIE_v2.md*

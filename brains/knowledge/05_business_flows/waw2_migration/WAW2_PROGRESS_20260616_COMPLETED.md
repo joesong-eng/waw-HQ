@@ -98,7 +98,7 @@ PHP部署     ████████████████████ 100% 
 ### 本地結構（2026-06-16 02:20 後）
 
 ```
-/Users/ilawusong/Documents/sysWawIot/
+/Users/ilawusong/Documents/WaW/
 ├── HQ/              ← 協調中心
 ├── waw-core/        ← 業務金流服務（原 waw-business）✨
 ├── waw-iot/         ← 設備 IoT 服務
@@ -166,7 +166,7 @@ PHP部署     ████████████████████ 100% 
 
 ## 🔗 相關文件
 
-- ← [Phase 4 諮詢報告](file:///Users/ilawusong/Documents/sysWawIot/tg25-infra/_agent/REPORT_20260616_020008_CONS_20260616_PHASE4_MANUAL.md)
+- ← [Phase 4 諮詢報告](file:///Users/ilawusong/Documents/WaW/PROJECT/Infra/_agent/REPORT_20260616_020008_CONS_20260616_PHASE4_MANUAL.md)
 - ← [WAW 2.0 架構規格](../../../03_system_architecture/WAW_2.0_ARCHITECTURE_SPEC.md)
 - ← [V9 系統拆分設計](../../../waw2.0_specs/V9_SYSTEM_SPLITTING_DESIGN.md)
 - ← [基礎設施參考](../../../04_deployment_operations/INFRASTRUCTURE_REFERENCE.md)

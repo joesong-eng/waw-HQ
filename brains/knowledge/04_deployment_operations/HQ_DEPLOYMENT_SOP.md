@@ -2,7 +2,7 @@
 
 > 最後更新: 2026-05-18
 > Owner: HHQM
-> 適用範圍: sysWawIot 全模組部署治理
+> 適用範圍: WaW 全模組部署治理
 > 狀態: Active
 
 ---
@@ -40,7 +40,7 @@ Proposal -> Approval -> Execution -> Audit -> Close
 
 部署前必須先建立或更新 HQ 任務板：
 
-`/Users/ilawusong/Documents/sysWawIot/HQ/brains/registry/DISPATCH_BOARD.md`
+`/Users/ilawusong/Documents/WaW/brains/registry/DISPATCH_BOARD.md`
 
 Proposal 至少包含：
 
