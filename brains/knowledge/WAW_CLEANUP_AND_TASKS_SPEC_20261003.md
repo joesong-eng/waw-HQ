@@ -196,9 +196,9 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
   | Infra | 1 | `1181ba8` purge legacy _agent dispatch |
   | Alliance | 1 | `2722b8b` purge legacy _agent dispatch |
 - **步驟**：
-  1. [ ] root push（11 commit）
-  2. [ ] Infra push（1 commit）
-  3. [ ] Alliance push（1 commit）
+  1. [x] root push（已推送）
+  2. [x] Infra push（已推送）
+  3. [x] Alliance push（已推送）
 - **負責**：HQ
 - **驗收**：各 repo `git log origin/main..HEAD` = 0
 

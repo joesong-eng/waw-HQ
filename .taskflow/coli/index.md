@@ -1,52 +1,27 @@
 # Coli (IOTwawS3) - 任務索引
 
-> **Agent**：Coli (IOTwawS3)  
-> **最後更新**：2026-08-16  
-> **位置**：.taskbox/index.md
+**Agent**：Coli (IOTwawS3)
+**職責**：遊戲採集卡韌體
+**最後更新**：2026-10-05
 
 ---
 
-## 📊 任務統計
+## 📬 信箱
 
-- **待處理**：0
-- **處理中**：0
-- **已完成**：0
-
----
-
-## 📋 任務列表
-
-### 待處理 (Pending)
-
-（無）
-
-### 處理中 (In Progress)
-
-（無）
-
-### 已完成 (Completed)
-
-（無）
-
----
+- **inbox**: .taskflow/coli/inbox/（HQ 派工收件）
+- **outbox**: .taskflow/coli/outbox/（完工回報）
 
 ## 📝 使用說明
 
-### 收到新任務
-- 任務會出現在 `.taskbox/inbox/YYYYMMDD_HHMMSS_TASK_ID.md`
-- 在此索引記錄任務編號和狀態
+### 收到任務
+- 任務出現在 inbox/YYYYMMDD_HHMMSS_TASK_ID.md
+- 使用 ./dev_tools/waw_ops.sh status 查看即時狀態
 
 ### 完成任務
-- 創建回報文件到 `.taskbox/outbox/YYYYMMDD_HHMMSS_TASK_ID.md`
-- 更新此索引，標記任務為已完成
-
-### 索引格式
-```
-- [TASK_ID] 任務描述 | 狀態 | 日期
-```
+- 回報寫入 outbox/ 或執行 bash ../../dev_tools/agent_report_to_hq_v2.sh coli <report_path>
+- HQ 確認後以 ./dev_tools/waw_ops.sh close coli <關鍵字> 結案歸檔
 
 ---
 
-**維護者**：Coli (IOTwawS3)  
+**維護者**：Coli (IOTwawS3)
 **HQ 可見**：是
-
