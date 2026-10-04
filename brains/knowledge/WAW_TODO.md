@@ -1,7 +1,7 @@
 # WAW 待辦事項總表 (Master TODO)
 
 維護者：HQ
-最後更新：2026-10-05
+最後更新：2026-10-05（HQ 收尾：補記 SignalHub 獨立站點已上線）
 說明：此文件記錄跨專案的中長期待辦，避免遺忘。各 Agent 的即時任務走 .taskflow 系統。
 
 ---
@@ -18,7 +18,7 @@
 
 ## 🔴 SignalHub 核心流程
 
-- [ ] **[Sidney]** SignalHub 獨立站點建置（signal.tg25.win / play.tg25.win）
+- [x] **[Sidney]** SignalHub 獨立站點建置（signal.tg25.win 已上線「WAW SignalHub」；repo: signal-hub-standalone）
 - [x] **[Sidney]** 完成 Owner 後台「信號設定」選單入口整合
 - [x] **[Ina]** 生產資料庫 iotv9 執行 SignalHub Migration（5張表建立完成）
 - [ ] **[Sidney]** 跑通第一個完整樣板：店主建設定檔 → 腳位映射 → 統計規則 → ESP32 MQTT

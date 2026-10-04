@@ -1,9 +1,9 @@
-# Skill: HQ 任務協調（兩階段派工）
+# Skill: HQ 任務協調（`.taskflow` 派工）
 
-> **版本**：1.0
-> **建立**：2026-08-01
+> **版本**：2.0
+> **建立**：2026-08-01 ｜ **改版**：2026-10-05（對齊 `.taskflow` 純檔案派工）
 > **適用角色**：HQ（唯一使用者）
-> **核心規則**：諮詢先行，核准後執行，不得越階
+> **核心規則**：設計先行 → 派工 → 以實證驗收 → 結案歸檔
 
 ---
 
@@ -16,165 +16,94 @@
 - 改變部署配置、基礎設施、MQTT 設定
 - 跨 Agent 協作（影響超過一個專案）
 
-**一律使用本 Skill 的兩階段流程，不得直接下執行任務。**
+**一律走本 Skill 的派工流程。** 純查詢可省略工單，但仍須以實證回覆。
 
-純查詢（例如：「目前 Owner 的 API 有哪些」）可跳過 Stage B，但 Stage A 仍需建立。
+> ⛔ 舊的兩階段 consult / Redis / `.taskbox` / `hq_gateway.py` 流程**已廢除**，不再使用。
 
 ---
 
-## Stage A：諮詢（Consultation）
+## Step 1：設計先行（Design First）
 
-### A1. HQ 建立諮詢任務
+派工前 HQ 必須確認：
+
+1. **資料來源**：SSOT 表 / 模型（對照 ADR-002、ADR-003）
+2. **通訊主題**：MQTT / WebSocket（對照 `02_technical_standards/`）
+3. **系統邊界**：屬哪個 Agent 的專案、是否跨專案
+4. **驗收指標**：可量測的指令 / HTTP 碼 / log（不接受口頭聲明）
+
+---
+
+## Step 2：建立工單（Write the work order）
+
+長工單一律先寫成 Markdown 檔案，再以 `--file` 派發（避免 Shell 截斷與跳脫損壞）：
 
 ```bash
-./dev_tools/waw_ops.sh consult <agent> <thread_id> "<諮詢問題>" high
+# 短任務
+./dev_tools/waw_ops.sh task <agent> <task_id> "<描述>" [priority]
+
+# 長工單（強烈推薦）
+./dev_tools/waw_ops.sh task <agent> <task_id> --file <工單.md> [priority]
 ```
 
-**諮詢內容必須包含：**
+工單**必須包含**：
 
-1. 背景說明（為什麼要做這件事）
-2. 預期目標（驗收條件）
-3. 已知限制（不得觸碰的範圍）
-4. 要求 Agent 回覆的問題（方案可行性、影響範圍、替代方案）
+- 任務 ID / 派發時間 / 優先級 / 負責人
+- **背景**：為什麼要做、架構依據（ADR / SPEC 路徑）
+- **明確步驟**：做什麼、改哪些檔案
+- **驗收指標**：每項附「實際指令 + 預期輸出」
+- **禁止事項**：不得觸碰的範圍
+- **完成定義**：回報寫入 `.taskflow/<agent>/outbox/`
 
-**諮詢內容禁止包含：**
-
-- 具體的程式碼實作指令（「請在 XXX 加這段程式」）
-- 要求直接修改任何檔案
-
----
-
-### A2. Agent 執行諮詢
-
-Agent 在其專案目錄內啟動，**只讀不寫**（業務程式碼），回覆 consultation report：
-
-```json
-{
-  "thread_id": "<thread_id>",
-  "agent": "<agent_name>",
-  "status": "awaiting_approval",
-  "understanding": "用 Agent 自己的話重述需求，確認理解正確",
-  "current_state_evidence": [
-    "實際讀取的檔案路徑與關鍵內容摘要",
-    "指令輸出 log",
-    "現有架構與需求的差距"
-  ],
-  "recommended_plan": [
-    "Step 1: ...",
-    "Step 2: ...",
-    "Step N: ..."
-  ],
-  "alternatives": [
-    { "option": "方案 B", "tradeoff": "..." }
-  ],
-  "affected_files": ["預計修改或新建的檔案列表"],
-  "risks": ["風險描述與對應回滾方法"],
-  "validation_plan": ["執行後用什麼指令或 log 來驗證成功"],
-  "questions_for_hq": ["需要 Joe/HQ 決策的尚未明確事項"]
-}
-```
-
-回報後：Telegram 通知 Joe，status 更新為 `awaiting_approval`。
+落點：`.taskflow/<agent>/inbox/YYYYMMDD_HHMMSS_TASK_<ID>.md`
 
 ---
 
-### A3. HQ 審閱（Joe 開啟 HQ session）
+## Step 3：Agent 執行與回報
 
-收到 Telegram 通知後，Joe 回到 HQ session：
+Agent 在**其專案目錄**內執行（見下方對照表），完成後：
 
-1. 閱讀 consultation report
-2. 判斷：
-   - ✅ 方案可行 → 進入 Stage B
-   - 🔄 需要補充 → 補充後重新諮詢（REDO，同 thread_id）
-   - ❌ 不做 → 關閉 thread，status = "rejected"
-3. 若核准，明確告知 HQ 哪個方案被核准（或調整後核准）
+- 回報寫入 `.taskflow/<agent>/outbox/`，或執行
+  `bash ../../dev_tools/agent_report_to_hq_v2.sh <agent> <report_path>`
+- 回報**必須附實證**：指令輸出、HTTP 回應、SQL SELECT 結果、git commit hash
+- 遇方案外決策 → 停止並回報阻塞，不得自行擴大範圍
 
 ---
 
-## Stage B：執行（Execution）
+## Step 4：HQ 驗收與結案
 
-### B1. HQ 建立執行任務
-
-只有在 Stage A 完成且已獲核准後執行：
+1. **全量讀取**回報（`outbox/*.md` 一律整檔讀取，禁止切片）
+2. 以 `evidence` 中的 log / diff / API 回應驗收，不以口頭聲明驗收
+3. 有問題 → 重新派工（帶具體問題）
+4. 通過 → 結案歸檔：
 
 ```bash
-./dev_tools/waw_ops.sh task <agent> <thread_id>_EXEC "<執行任務說明>" high
+./dev_tools/waw_ops.sh close <agent> <關鍵字>
 ```
 
-**執行任務 payload 必須帶入：**
-
-- 核准的方案摘要（approved_plan）
-- consultation report 路徑（作為執行依據）
-- 驗收條件（與 consultation report 的 validation_plan 一致）
-- 明確的回報格式要求
+歸檔至 `.taskflow/archive/<agent>/<YYYYMM>/`。
 
 ---
 
-### B2. Agent 執行任務
-
-Agent 在其專案目錄內啟動，**只實作已核准的方案**：
-
-- 遇到方案外的決策 → 立即停止，回報 `blocked: true`，等待 HQ 補充
-- 不得自行擴大範圍
-- 完成後寫入 `.taskbox/outbox/<thread_id>_EXEC_report.json`
-
-**執行 report 最少須包含：**
-
-```json
-{
-  "thread_id": "<thread_id>_EXEC",
-  "agent": "<agent_name>",
-  "status": "done | blocked | partial",
-  "summary": "完成工作的一句話摘要",
-  "evidence": [
-    "git diff 摘要或修改檔案列表",
-    "測試指令與實際輸出 log",
-    "驗證指令輸出"
-  ],
-  "requires_review": false,
-  "blocked": false,
-  "blocked_reason": "",
-  "sub_tasks": []
-}
-```
-
----
-
-### B3. HQ 驗收
-
-收到 Telegram 通知後，Joe 回到 HQ session：
-
-1. 閱讀 execution report
-2. 以 `evidence` 中的 log 和 diff 驗收，不以口頭聲明驗收
-3. 若有問題：REDO，帶入具體問題描述
-
----
-
-## 快速狀態速查
+## 常用指令速查
 
 ```bash
-# 查所有任務 context store
-redis-cli KEYS "hq:thread:*:status" | xargs -I{} sh -c 'echo "{}: $(redis-cli GET {})"'
-
-# 查特定任務
-redis-cli GET "hq:thread:<thread_id>:status"
-
-# 查 HQ inbox 回報
-ls -lt .taskbox/inbox/ | head -10
-
-# 查 HQ outbox 發出的任務
-ls .taskbox/outbox/
+./dev_tools/waw_ops.sh status              # 各 Agent 信箱狀態
+./dev_tools/waw_ops.sh log                 # 最近派工日誌
+./dev_tools/waw_ops.sh report <agent>      # 讀取最新回報
+./dev_tools/waw_ops.sh close <agent> <key> # 結案歸檔
+./dev_tools/waw_ops.sh deploy <agent>      # 遠端部署
+./dev_tools/waw_ops.sh remote <agent> "<cmd>"  # 遠端執行指令
 ```
 
 ---
 
 ## 防呆清單（HQ 每次派工前自問）
 
-- [ ] 我有沒有先做 consultation？
-- [ ] Agent 有沒有回覆 `consultation_report`？
-- [ ] 我有沒有明確告知哪個方案被核准？
-- [ ] Execution payload 有沒有帶入 `approved_plan` 與驗收條件？
-- [ ] Agent 在諮詢階段有沒有「questions_for_hq」未回答？
+- [ ] 有沒有確認資料來源 / MQTT 主題 / 系統邊界？
+- [ ] 工單是否含**可量測的驗收指標**？
+- [ ] 是否已指定**禁止事項**與**完成定義**？
+- [ ] 長工單是否以 `--file` 派發（而非塞進 CLI）？
+- [ ] 是否知道要讀哪個 `outbox/` 驗收？
 
 ---
 
@@ -182,18 +111,20 @@ ls .taskbox/outbox/
 
 | Agent | 工作目錄 | 主要職責 |
 |-------|---------|---------|
-| Sophie | `/Users/ilawusong/Documents/WaW/Owner` | 營運商後台 |
-| Mina | `/Users/ilawusong/Documents/WaW/Member` | 玩家前端 |
-| Ina | `/Users/ilawusong/Documents/WaW/Infra` | 資料庫、MQTT、基礎設施 |
-| Allie | `/Users/ilawusong/Documents/WaW/Alliance` | 供應商代理商 |
-| Hubie | `/Users/ilawusong/Documents/WaW/iHub` | Android APK |
-| Fio | `/Users/ilawusong/Documents/WaW/Firmware/IOTkiosk_v0` | 兌幣卡韌體 |
-| Coli | `/Users/ilawusong/Documents/WaW/Firmware/IOTwawS3` | 遊戲採集卡韌體 |
+| Sophie | `PROJECT/Owner` | 營運商後台 |
+| Mina | `PROJECT/Member` | 玩家前端 |
+| Ina | `PROJECT/Infra` | 資料庫、MQTT、基礎設施 |
+| Allie | `PROJECT/Alliance` | 供應商代理商 |
+| Hubie | `PROJECT/iHub` | Android APK |
+| Fio | `PROJECT/IOTkiosk_v0` | 兌幣卡韌體 |
+| Coli | `PROJECT/IOTwawS3` | 遊戲採集卡韌體 |
+| Sidney | `PROJECT/SignalHub` | 信號中心與開放標準 |
 
 ---
 
 ## 🔗 文件神經連結
 
-- **設計依據**：`CLI_AGENT_DISPATCH_DESIGN.md`
-- **實作腳本**：`../../dev_tools/waw_ops.sh`、`../../core/hq_gateway.py`
+- **派工協議（權威）**：`../../01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md`
+- **總控腳本**：`../../../../dev_tools/waw_ops.sh`
 - **治理規範**：`AGENT_EXECUTION_PROTOCOL.md`、`AGENT_RESPONSIBILITY_BOUNDARIES.md`
+- **待辦總表**：`../../WAW_TODO.md`

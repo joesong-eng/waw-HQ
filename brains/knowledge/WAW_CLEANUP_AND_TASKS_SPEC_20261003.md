@@ -3,7 +3,7 @@
 > **文件類型**：行動規格書（Action Spec / Master TODO）
 > **建立日期**：2026-10-03
 > **維護者**：HQ
-> **狀態**：Phase 1-3 已完成；僅餘 P5（push）與 Ina drop 評估
+> **狀態**：Phase 1-3 與 P5（push）全部完成；僅餘 P2（Member machine_sessions drop 評估，不阻斷）與本輪文件收尾（2026-10-05 HQ 進行中）
 > **適用範圍**：全 WaW 系統（HQ + 7 專案）
 > **觸發來源**：Joe 指示「重新整體整理還有哪些沒做好」+「刪除舊派工系統，以後不要有混淆的機會」
 
@@ -229,9 +229,10 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
 | 2026-10-04 | Phase 3 P1-P4 全部完工（Agent 回報） | ✅ |
 | 2026-10-04 | ADR-003 取代 ADR-001（訂閱表統一 subscriptions） | ✅ |
 | 2026-10-04 | 全 8 專案 git dirty 歸零 | ✅ |
-| 2026-10-04 | P5 未 push（root 11 / Infra 1 / Alliance 1） | ⏳ 未結 |
+| 2026-10-04 | P5 未 push（root 11 / Infra 1 / Alliance 1） | ✅ 已 push（8 專案 behind/ahead 0/0） |
+| 2026-10-05 | HQ 收尾：批次結案 19 筆已完成任務、根 README/JOE_READ_ME 重寫、Owner 殘留派工 | ✅ |
 
 ---
 
 **維護者**：HQ
-**最後更新**：2026-10-04
+**最後更新**：2026-10-05

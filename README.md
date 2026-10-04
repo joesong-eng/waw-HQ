@@ -1,4 +1,4 @@
-# HQ - 本地開發協調中心
+# HQ - wawIoT 遊藝場管理系統協調中心
 
 HQ 是 wawIoT 遊藝場管理系統的多 Agent 協調樞紐，負責需求分析、任務規劃與分配，以及跨專案知識管理。
 
@@ -8,7 +8,7 @@ HQ 是 wawIoT 遊藝場管理系統的多 Agent 協調樞紐，負責需求分�
 
 - 分析需求，確認資料來源、通訊主題、系統邊界後，才發任務給對應 Agent
 - 維護 `brains/knowledge/` 知識庫（唯一寫入權限）
-- 透過 Chat Bridge 協調各 Agent 的工作
+- 透過 `.taskflow` 純檔案信箱機制派工給各 Agent（舊 Redis Pub/Sub、Chat Bridge、`hq_gateway.py` 已全面廢除）
 
 ## Agent 分工
 
@@ -21,66 +21,61 @@ HQ 是 wawIoT 遊藝場管理系統的多 Agent 協調樞紐，負責需求分�
 | Hubie | iHub | `ihub.tg25.win` | Android iHub APK |
 | Fio | Firmware | IOTkiosk_v0 | 兌幣卡韌體（`kiosk/+/`） |
 | Coli | Firmware | IOTwawS3 | 通訊卡韌體（`device/+/`） |
+| Sidney | SignalHub | `signal.tg25.win` | 信號中心與開放標準 |
 
 ## 兩種 ESP32 韌體（不可混淆）
 
-| 韌體 | 用途 | MQTT 前綴 | 管理方 |
-|------|------|-----------|-------|
-| `IOTwawS3` (game_v0) | 遊戲機採集卡 | `device/{chip_id}/` | Owner |
-| `IOTkiosk_v0` (kiosk_v0) | 紙鈔機收鈔卡 | `kiosk/{chip_id}/` | Member/Infra |
+| 韌體 | 專案 | MQTT Topic 前綴 | 用途 |
+|------|------|----------------|------|
+| `IOTwawS3` (game_v0) | Coli | `device/{chip_id}/` | 遊戲機採集卡 |
+| `IOTkiosk_v0` (kiosk_v0) | Fio | `kiosk/{chip_id}/` | 紙鈔機收鈔卡 |
 
 ## 目錄結構
 
 ```
 brains/
   knowledge/           # 知識庫（HQ 專屬寫入）
-    01_agent_governance/   # Agent 協作協議
-    02_technical_standards/ # MQTT、WebSocket 標準
-    03_system_architecture/ # 系統架構
+    01_agent_governance/      # Agent 協作與派工協議
+    02_technical_standards/   # MQTT、WebSocket、命名標準
+    03_system_architecture/   # 系統架構、ADR
     04_deployment_operations/ # 部署與運維
-    05_business_flows/     # 業務流程
+    05_business_flows/        # 業務流程
   history/             # 事件記錄、教訓
 
-.kiro/
-  steering/            # Workspace 規則
-  specs/               # 功能規格（進行中）
+.taskflow/             # 純檔案派工信箱（唯一派工體系）
+  <agent>/inbox/       # HQ 派工收件
+  <agent>/outbox/      # Agent 完工回報
+  archive/             # 結案歸檔
 
-archive/
-  completed/           # 已完成任務報告
-  obsolete/            # 廢棄文件
-  reference/           # 參考文件
+dev_tools/
+  waw_ops.sh           # 全域總控（派工、部署、狀態、遠端指令）
+  agent_report_to_hq_v2.sh
+
+PROJECT/               # 各 Agent 專案
+  Alliance/ Owner/ Member/ Infra/ iHub/ IOTkiosk_v0/ IOTwawS3/ SignalHub/
 ```
 
 ## 核心規範
 
 1. **設計先行**：發任務前必須確認資料來源、通訊主題、系統邊界
-2. **查文件優先**：MQTT 主題查 `02_technical_standards/MQTT_TOPIC_STANDARD.md`，WebSocket 查 `WEBSOCKET_CHANNEL_STANDARD.md`
+2. **查文件優先**：MQTT 查 `02_technical_standards/MQTT_TOPIC_STANDARD.md`，WebSocket 查 `WEBSOCKET_CHANNEL_STANDARD.md`
 3. **要求實際證明**：不接受口頭報告，需截圖、log 或 API 回傳結果
-4. **知識庫唯一寫入**：其他 Agent 需透過 Chat Bridge 提交，由 HQ 審核後寫入
+4. **知識庫唯一寫入**：其他 Agent 需透過 `.taskflow` 回報，由 HQ 審核後寫入
 
-## 通訊方式
+## 派工與回報
 
-主要：Chat Bridge (MCP `ai-chat-bridge`)，格式：`@AgentName <訊息>`
+```bash
+# 短任務
+./dev_tools/waw_ops.sh task <agent> <task_id> "<desc>" [priority]
 
----
+# 完整工單（強烈推薦，防截斷）
+./dev_tools/waw_ops.sh task <agent> <task_id> --file <工單檔案路徑> [priority]
 
-## 📚 私有知識庫網站 (MkDocs)
-
-本專案文件與知識庫已整合 MkDocs，並以安全隧道方式部署於 VPS (`bessie202` 的 `127.0.0.1:8088`），確保 100% 私密不對外公開。
-
-### 🔑 存取步驟
-
-1. **建立安全隧道**：在 Mac 本地終端機執行以下指令：
-   ```bash
-   ssh -N -L 8088:localhost:8088 bessie202
-   ```
-2. **打開網頁**：在瀏覽器打開 [http://localhost:8088](http://localhost:8088) 即可瀏覽美化的知識庫網頁。
-
-### 💡 優雅免指令設定 (推薦)
-
-修改 Mac 本地的 `~/.ssh/config`，在 `bessie202` 的伺服器區塊中加入以下這行：
-```ssh
-LocalForward 8088 localhost:8088
+# 檢視狀態 / 讀取回報 / 結案
+./dev_tools/waw_ops.sh status
+./dev_tools/waw_ops.sh report <agent>
+./dev_tools/waw_ops.sh close <agent> <key>
 ```
-設定完成後，只要您平時用終端機連線伺服器（例如執行 `ssh bessie202`），即可直接在 Mac 上瀏覽 [http://localhost:8088](http://localhost:8088)，免去每次手動開隧道的步驟。
 
+- 派工協議：`brains/knowledge/01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md`
+- 對外文件（開發者/合作夥伴）：`pubdocs/`

@@ -1,25 +1,26 @@
-# ~~Skill: analyse_agent_report~~ — ⚠️ DEPRECATED
+# Skill: analyse_agent_report — ⛔ DEPRECATED（整條自動化鏈已廢除）
 
-> **狀態**：已由 `scripts/hq_gateway.py` 的 `DecisionEngine` 自動接管，本文件不再使用。
-> **廢棄日期**：2026-06-10
-> **取代者**：`scripts/hq_gateway.py` → `class DecisionEngine`
+> **狀態**：已廢棄。原自動判斷鏈（`scripts/hq_gateway.py` 的 `DecisionEngine`）已於 2026-10-03 隨舊派工系統一併刪除。
+> **廢棄日期**：2026-06-10（自動化廢除）／2026-10-03（`hq_gateway.py` 實體刪除）
 
-## 為什麼廢棄
+---
 
-原本這個 skill 是給 HQ 子代理（codex exec）讀的執行手冊，
-收到 Agent 回報後 spawn 一個子代理、讀這份 md、照步驟判斷。
+## 現在 HQ 如何分析 Agent 回報
 
-現在 `hq_gateway.py` 的 `DecisionEngine.decide()` 直接呼叫 LLM API 完成同樣判斷，
-不再需要 spawn 子代理，本文件實質退休。
+改為**人工**在 HQ session 內執行：
 
-## 決策邏輯現在在哪裡
+1. **全量讀取**回報：`.taskflow/<agent>/outbox/*.md`（禁止切片，整檔讀取）
+2. 以實證驗收：指令輸出、HTTP 回應、SQL SELECT、git commit hash
+3. 判斷：
+   - ✅ 通過 → `./dev_tools/waw_ops.sh close <agent> <key>` 結案歸檔
+   - 🔄 需補 → 重新派工，帶具體問題描述
+   - ❌ 阻塞 → 評估是否調整設計或改派
 
-`scripts/hq_gateway.py`：
-- `DecisionEngine.STATUS_PROMPTS` — 各階段判斷標準（consulting / pending / redo_requested）
-- `DecisionEngine.decide()` — 讀 context store → 呼叫 LLM → 解析 DECISION → 執行對應動作
-- `DecisionEngine._execute()` — 呼叫 `hq_task_flow.sh` 執行 approved/task/redo/supplement
-- `DecisionEngine._escalate()` — 寫入 `_agent/HQ_ESCALATE_*.md` 等待 Joe 介入
+## 取代者
 
-## 如需調整判斷邏輯
+- **派工/結案工具**：`dev_tools/waw_ops.sh`（`.taskflow` 純檔案系統）
+- **回報工具**：`dev_tools/agent_report_to_hq_v2.sh`
+- **派工協議（權威）**：`../../01_agent_governance/SIMPLE_FILE_DISPATCH_PROTOCOL.md`
+- **協調流程**：`task_orchestration.md`
 
-直接修改 `scripts/hq_gateway.py` 的 `DecisionEngine.STATUS_PROMPTS` 或 `SYSTEM_PROMPT`。
+> ⛔ 不再有 `scripts/hq_gateway.py`、`DecisionEngine`、`.taskbox/`、`_agent/HQ_ESCALATE_*.md`。
