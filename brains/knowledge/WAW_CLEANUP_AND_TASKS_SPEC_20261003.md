@@ -145,7 +145,7 @@ iHub `25a964d`、IOTkiosk_v0 `5ef06a2`、IOTwawS3 `63dadcd`
   1. [x] HQ 裁定架構 → **ADR-002**：廢除 `MachineSession`，統一 `DeviceSession`
   2. [x] 派單 Mina：`TASK_20261003_MINA_ALIGN_DEVICE_SESSION_SSOT`（改 CallbackController 2 處 + 刪 Model）
   3. [x] Mina 完工回報（2026-10-03，E2E 驗收通過）
-  4. [ ] Ina 評估 `machine_sessions` 表 drop 時機（P3，後續）
+  4. [ ] 派單 Sophie：TASK_20261005_SOPHIE_FIX_BILLACCEPTOR_MACHINE_SESSIONS — Owner BillAcceptorService.php:49/121 跨庫查 machine_sessions 表，須改查 device_sessions（chip_id + status=active）。此為活的 code bug，非歷史殘留。
 - **狀態**：✅ 程式碼已對齊（`MachineSession` = 0 hits）
 - **負責**：HQ（已裁定）→ Mina（已完成）
 - **決策文件**：`brains/knowledge/03_system_architecture/ADR-002_MEMBER_DEVICE_SESSION_SSOT.md`
