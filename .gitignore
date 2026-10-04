@@ -54,7 +54,12 @@ Thumbs.db
 .cache/
 
 # Secret handover — never commit credentials
-.taskflow/hq/inbox/secret_handover/
+.taskflow/**/secret_handover/
+
+# Environment files — never commit credentials
+*.env
+*.env.*
+!.env.example
 
 # Temporary task batch files
 .taskflow/_tmp_*.md
