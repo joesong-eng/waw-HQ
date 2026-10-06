@@ -48,6 +48,8 @@ send_task() {
         if [ ! -f "${filepath}" ]; then echo "not found"; exit 1; fi
         cp "${filepath}" "${task_file}"
         log "dispatched(file): ${agent} -> ${task_file}"
+    # Redis notify hook
+    bash "${HQ_DIR}/dev_tools/taskflow_notify.sh" dispatch "${agent}" "${task_id}"
         return
     fi
 
@@ -93,6 +95,8 @@ ${description}
 MARKDOWN
 
     log "✅ 任務已派發：${agent} (${agent_lower}) → ${task_file}"
+    # Redis notify hook
+    bash "${HQ_DIR}/dev_tools/taskflow_notify.sh" dispatch "${agent}" "${task_id}"
 }
 
 case "$1" in

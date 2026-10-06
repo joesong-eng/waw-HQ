@@ -76,3 +76,8 @@ _agent/
 vendor/
 node_modules/
 target/
+
+# Taskflow runtime state (VPS dynamic sessions & local logs)
+.taskflow/taskflow_sessions.json
+.taskflow/*.log
+.taskflow/**/*.log

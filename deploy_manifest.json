@@ -1,0 +1,165 @@
+{
+  "_version": "2.0.0",
+  "_description": "WaW 精緻化部署與 Agent 拓撲宣告式配置清單",
+  "agents": {
+    "owner": {
+      "name": "Sophie",
+      "module": "owner",
+      "title": "營運商後台",
+      "ssh_host": "yd174",
+      "ip": "129.153.116.174",
+      "port": 39022,
+      "remote_path": "/www/wwwroot/iot.tg25.win/wawv9",
+      "git_branch": "main",
+      "type": "laravel",
+      "service": null,
+      "deploy_commands": [
+        "git pull origin main",
+        "if [ -f package.json ]; then pnpm install && pnpm build; fi",
+        "sudo -u www php artisan migrate --force",
+        "sudo -u www php artisan optimize:clear"
+      ],
+      "health_check": {
+        "type": "http",
+        "url": "https://iot.tg25.win",
+        "expected_status": [200, 302]
+      }
+    },
+    "member": {
+      "name": "Mina",
+      "module": "member",
+      "title": "玩家前端",
+      "ssh_host": "yd177",
+      "ip": "129.146.103.177",
+      "port": 39022,
+      "remote_path": "/www/wwwroot/win.tg25.win",
+      "git_branch": "main",
+      "type": "laravel",
+      "service": "reverb",
+      "deploy_commands": [
+        "git pull origin main",
+        "pnpm install && pnpm build",
+        "sudo -u www php artisan migrate --force",
+        "sudo -u www php artisan optimize:clear",
+        "sudo systemctl restart reverb"
+      ],
+      "health_check": {
+        "type": "http_and_service",
+        "url": "https://win.tg25.win",
+        "service": "reverb",
+        "expected_status": [200, 302]
+      }
+    },
+    "alliance": {
+      "name": "Allie",
+      "module": "alliance",
+      "title": "供應商代理商",
+      "ssh_host": "yd16",
+      "ip": "137.131.50.16",
+      "port": 39022,
+      "remote_path": "/www/wwwroot/ali.tg25.win",
+      "git_branch": "main",
+      "type": "laravel",
+      "service": null,
+      "deploy_commands": [
+        "git pull origin main",
+        "if [ -f package.json ]; then pnpm install && pnpm build; fi",
+        "sudo -u www php artisan migrate --force",
+        "sudo -u www php artisan optimize:clear"
+      ],
+      "health_check": {
+        "type": "http",
+        "url": "https://ali.tg25.win",
+        "expected_status": [200, 302]
+      }
+    },
+    "infra": {
+      "name": "Ina",
+      "module": "infra",
+      "title": "基礎設施/DB/MQTT",
+      "ssh_host": "infra",
+      "ip": "141.148.165.50",
+      "port": 39022,
+      "remote_path": "/home/ubuntu/tg25-infra",
+      "git_branch": "main",
+      "type": "python",
+      "service": "mqtt-listener",
+      "deploy_commands": [
+        "git pull origin main",
+        "pip install -r requirements.txt",
+        "sudo systemctl restart mqtt-listener"
+      ],
+      "health_check": {
+        "type": "service",
+        "service": "mqtt-listener"
+      }
+    },
+    "ihub": {
+      "name": "Hubie",
+      "module": "ihub",
+      "title": "iHub Android APK",
+      "ssh_host": "yd177",
+      "ip": "129.146.103.177",
+      "port": 39022,
+      "remote_path": "/www/wwwroot/ihub.tg25.win",
+      "git_branch": "main",
+      "type": "node",
+      "service": null,
+      "deploy_commands": [
+        "git pull origin main",
+        "npm install",
+        "npm run build"
+      ],
+      "health_check": {
+        "type": "http",
+        "url": "https://ihub.tg25.win",
+        "expected_status": [200, 302]
+      }
+    },
+    "signalhub": {
+      "name": "Sidney",
+      "module": "signalhub",
+      "title": "訊號中繼服務",
+      "ssh_host": "yd174",
+      "ip": "129.153.116.174",
+      "port": 39022,
+      "remote_path": "/www/wwwroot/signal.tg25.win",
+      "git_branch": "main",
+      "type": "laravel",
+      "service": null,
+      "deploy_commands": [
+        "git pull origin main",
+        "sudo -u www php artisan optimize:clear"
+      ],
+      "health_check": {
+        "type": "http",
+        "url": "https://signal.tg25.win",
+        "expected_status": [200, 302]
+      }
+    },
+    "fio": {
+      "name": "Fio",
+      "module": "fio",
+      "title": "IOTkiosk_v0 兌幣卡",
+      "ssh_host": null,
+      "type": "firmware",
+      "service": null,
+      "deploy_commands": [],
+      "health_check": {
+        "type": "offline_firmware"
+      }
+    },
+    "coli": {
+      "name": "Coli",
+      "module": "coli",
+      "title": "IOTwawS3 遊戲採集卡",
+      "ssh_host": null,
+      "type": "firmware",
+      "service": null,
+      "deploy_commands": [],
+      "health_check": {
+        "type": "offline_firmware"
+      }
+    }
+  }
+}
